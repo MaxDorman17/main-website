@@ -5,6 +5,17 @@ const sql = neon(process.env.DATABASE_URL!)
 
 export async function GET() {
   try {
+    // Create table if it doesn't exist
+    await sql`
+      CREATE TABLE IF NOT EXISTS profile_picture (
+        id SERIAL PRIMARY KEY,
+        image_url TEXT NOT NULL,
+        alt_text VARCHAR(255) DEFAULT 'Profile Picture',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `
+
     const result = await sql`SELECT * FROM profile_picture ORDER BY updated_at DESC LIMIT 1`
     return NextResponse.json(result[0] || null)
   } catch (error) {
