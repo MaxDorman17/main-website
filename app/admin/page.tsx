@@ -9,7 +9,20 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Upload, Eye, EyeOff, Zap } from "lucide-react"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Checkbox } from "@/components/ui/checkbox"
+import {
+  Upload,
+  Eye,
+  EyeOff,
+  Zap,
+  FileSpreadsheet,
+  Award,
+  BookOpen,
+  ExternalLink,
+  Settings,
+  Trash2,
+} from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 
 export default function AdminPage() {
@@ -49,7 +62,7 @@ export default function AdminPage() {
   const [msCourseName, setMsCourseName] = useState("")
   const [msDescription, setMsDescription] = useState("")
   const [msProgress, setMsProgress] = useState("")
-  const [msStatus, setMsStatus] = useState("")
+  const [msStatus, setMsStatus] = useState("not_started")
   const [msModulesCompleted, setMsModulesCompleted] = useState("")
   const [msTotalModules, setMsTotalModules] = useState("")
   const [msEstimatedCompletion, setMsEstimatedCompletion] = useState("")
@@ -61,22 +74,41 @@ export default function AdminPage() {
   const [resourceTitle, setResourceTitle] = useState("")
   const [resourceDescription, setResourceDescription] = useState("")
   const [resourceUrl, setResourceUrl] = useState("")
-  const [resourceCategory, setResourceCategory] = useState("")
+  const [resourceCategory, setResourceCategory] = useState("Learning")
   const [resourceIsFree, setResourceIsFree] = useState(true)
+
+  // Services states
+  const [serviceTitle, setServiceTitle] = useState("")
+  const [serviceDescription, setServiceDescription] = useState("")
+  const [serviceFeatures, setServiceFeatures] = useState("")
+  const [servicePriceFrom, setServicePriceFrom] = useState("")
+  const [servicePriceType, setServicePriceType] = useState("from")
+  const [serviceIsFeatured, setServiceIsFeatured] = useState(false)
+  const [serviceIconName, setServiceIconName] = useState("FileSpreadsheet")
+
+  // Content lists for management
+  const [portfolioItems, setPortfolioItems] = useState({ excel: [], logos: [] })
+  const [certificates, setCertificates] = useState([])
+  const [msLearnProgress, setMsLearnProgress] = useState([])
+  const [resources, setResources] = useState([])
+  const [services, setServices] = useState([])
 
   // Load existing content when authenticated
   useEffect(() => {
     if (isAuthenticated) {
       loadAboutMe()
       loadHeroContent()
+      loadPortfolioItems()
+      loadCertificates()
+      loadMSLearnProgress()
+      loadResources()
+      loadServices()
     }
   }, [isAuthenticated])
 
   const loadAboutMe = async () => {
     try {
-      const response = await fetch("/api/about-me", {
-        method: "GET",
-      })
+      const response = await fetch("/api/about-me", { method: "GET" })
       if (response.ok) {
         const data = await response.json()
         if (data.content) {
@@ -90,9 +122,7 @@ export default function AdminPage() {
 
   const loadHeroContent = async () => {
     try {
-      const response = await fetch("/api/hero-content", {
-        method: "GET",
-      })
+      const response = await fetch("/api/hero-content", { method: "GET" })
       if (response.ok) {
         const data = await response.json()
         setHeroTagline(data.tagline || "")
@@ -101,6 +131,70 @@ export default function AdminPage() {
       }
     } catch (error) {
       console.error("Failed to load hero content:", error)
+    }
+  }
+
+  const loadPortfolioItems = async () => {
+    try {
+      const [excelResponse, logosResponse] = await Promise.all([
+        fetch("/api/portfolio/excel"),
+        fetch("/api/portfolio/logos"),
+      ])
+
+      const excel = excelResponse.ok ? await excelResponse.json() : []
+      const logos = logosResponse.ok ? await logosResponse.json() : []
+
+      setPortfolioItems({ excel, logos })
+    } catch (error) {
+      console.error("Failed to load portfolio items:", error)
+    }
+  }
+
+  const loadCertificates = async () => {
+    try {
+      const response = await fetch("/api/certificates")
+      if (response.ok) {
+        const data = await response.json()
+        setCertificates(data)
+      }
+    } catch (error) {
+      console.error("Failed to load certificates:", error)
+    }
+  }
+
+  const loadMSLearnProgress = async () => {
+    try {
+      const response = await fetch("/api/ms-learn")
+      if (response.ok) {
+        const data = await response.json()
+        setMsLearnProgress(data)
+      }
+    } catch (error) {
+      console.error("Failed to load MS Learn progress:", error)
+    }
+  }
+
+  const loadResources = async () => {
+    try {
+      const response = await fetch("/api/resources")
+      if (response.ok) {
+        const data = await response.json()
+        setResources(data)
+      }
+    } catch (error) {
+      console.error("Failed to load resources:", error)
+    }
+  }
+
+  const loadServices = async () => {
+    try {
+      const response = await fetch("/api/services")
+      if (response.ok) {
+        const data = await response.json()
+        setServices(data)
+      }
+    } catch (error) {
+      console.error("Failed to load services:", error)
     }
   }
 
@@ -263,7 +357,6 @@ export default function AdminPage() {
         setBlogTitle("")
         setBlogContent("")
         setBlogFiles(null)
-        // Reset file input
         const fileInput = document.getElementById("blog-files") as HTMLInputElement
         if (fileInput) fileInput.value = ""
       } else {
@@ -328,6 +421,368 @@ export default function AdminPage() {
     setLoading(false)
   }
 
+  const handleSaveExcelProject = async () => {
+    if (!excelTitle.trim() || !excelFile || excelFile.length === 0) {
+      toast({
+        title: "Error",
+        description: "Please provide title and Excel file",
+        variant: "destructive",
+      })
+      return
+    }
+
+    setLoading(true)
+    try {
+      const uploadedFiles = await handleFileUpload(excelFile, "excel")
+      if (!uploadedFiles || uploadedFiles.length === 0) {
+        setLoading(false)
+        return
+      }
+
+      const response = await fetch("/api/portfolio/excel", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: excelTitle,
+          description: excelDescription,
+          file_url: uploadedFiles[0].url,
+        }),
+      })
+
+      if (response.ok) {
+        toast({
+          title: "Success",
+          description: "Excel project added successfully!",
+        })
+        setExcelTitle("")
+        setExcelDescription("")
+        setExcelFile(null)
+        const fileInput = document.getElementById("excel-file") as HTMLInputElement
+        if (fileInput) fileInput.value = ""
+        loadPortfolioItems()
+      } else {
+        throw new Error("Failed to save Excel project")
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: `Failed to add Excel project: ${error.message}`,
+        variant: "destructive",
+      })
+    }
+    setLoading(false)
+  }
+
+  const handleSaveLogoDesign = async () => {
+    if (!logoTitle.trim() || !logoFile || logoFile.length === 0) {
+      toast({
+        title: "Error",
+        description: "Please provide title and logo image",
+        variant: "destructive",
+      })
+      return
+    }
+
+    setLoading(true)
+    try {
+      const uploadedFiles = await handleFileUpload(logoFile, "logos")
+      if (!uploadedFiles || uploadedFiles.length === 0) {
+        setLoading(false)
+        return
+      }
+
+      const response = await fetch("/api/portfolio/logos", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: logoTitle,
+          description: logoDescription,
+          image_url: uploadedFiles[0].url,
+        }),
+      })
+
+      if (response.ok) {
+        toast({
+          title: "Success",
+          description: "Logo design added successfully!",
+        })
+        setLogoTitle("")
+        setLogoDescription("")
+        setLogoFile(null)
+        const fileInput = document.getElementById("logo-file") as HTMLInputElement
+        if (fileInput) fileInput.value = ""
+        loadPortfolioItems()
+      } else {
+        throw new Error("Failed to save logo design")
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: `Failed to add logo design: ${error.message}`,
+        variant: "destructive",
+      })
+    }
+    setLoading(false)
+  }
+
+  const handleSaveCertificate = async () => {
+    if (!certTitle.trim() || !certFile || certFile.length === 0) {
+      toast({
+        title: "Error",
+        description: "Please provide title and certificate file",
+        variant: "destructive",
+      })
+      return
+    }
+
+    setLoading(true)
+    try {
+      const uploadedFiles = await handleFileUpload(certFile, "certificates")
+      if (!uploadedFiles || uploadedFiles.length === 0) {
+        setLoading(false)
+        return
+      }
+
+      const response = await fetch("/api/certificates", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: certTitle,
+          issuer: certIssuer,
+          description: certDescription,
+          file_url: uploadedFiles[0].url,
+          date_earned: certDate || null,
+        }),
+      })
+
+      if (response.ok) {
+        toast({
+          title: "Success",
+          description: "Certificate added successfully!",
+        })
+        setCertTitle("")
+        setCertIssuer("")
+        setCertDescription("")
+        setCertDate("")
+        setCertFile(null)
+        const fileInput = document.getElementById("cert-file") as HTMLInputElement
+        if (fileInput) fileInput.value = ""
+        loadCertificates()
+      } else {
+        throw new Error("Failed to save certificate")
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: `Failed to add certificate: ${error.message}`,
+        variant: "destructive",
+      })
+    }
+    setLoading(false)
+  }
+
+  const handleSaveMSLearnProgress = async () => {
+    if (!msCourseName.trim()) {
+      toast({
+        title: "Error",
+        description: "Please provide course name",
+        variant: "destructive",
+      })
+      return
+    }
+
+    setLoading(true)
+    try {
+      const response = await fetch("/api/ms-learn", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          course_name: msCourseName,
+          description: msDescription,
+          progress_percentage: Number.parseInt(msProgress) || 0,
+          status: msStatus,
+          modules_completed: Number.parseInt(msModulesCompleted) || 0,
+          total_modules: Number.parseInt(msTotalModules) || null,
+          estimated_completion: msEstimatedCompletion || null,
+        }),
+      })
+
+      if (response.ok) {
+        toast({
+          title: "Success",
+          description: "MS Learn progress added successfully!",
+        })
+        setMsCourseName("")
+        setMsDescription("")
+        setMsProgress("")
+        setMsStatus("not_started")
+        setMsModulesCompleted("")
+        setMsTotalModules("")
+        setMsEstimatedCompletion("")
+        loadMSLearnProgress()
+      } else {
+        throw new Error("Failed to save MS Learn progress")
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: `Failed to add MS Learn progress: ${error.message}`,
+        variant: "destructive",
+      })
+    }
+    setLoading(false)
+  }
+
+  const handleSaveResource = async () => {
+    if (!resourceTitle.trim() || !resourceUrl.trim()) {
+      toast({
+        title: "Error",
+        description: "Please provide title and URL",
+        variant: "destructive",
+      })
+      return
+    }
+
+    setLoading(true)
+    try {
+      const response = await fetch("/api/resources", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: resourceTitle,
+          description: resourceDescription,
+          url: resourceUrl,
+          category: resourceCategory,
+          is_free: resourceIsFree,
+        }),
+      })
+
+      if (response.ok) {
+        toast({
+          title: "Success",
+          description: "Resource added successfully!",
+        })
+        setResourceTitle("")
+        setResourceDescription("")
+        setResourceUrl("")
+        setResourceCategory("Learning")
+        setResourceIsFree(true)
+        loadResources()
+      } else {
+        throw new Error("Failed to save resource")
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: `Failed to add resource: ${error.message}`,
+        variant: "destructive",
+      })
+    }
+    setLoading(false)
+  }
+
+  const handleSaveService = async () => {
+    if (!serviceTitle.trim() || !serviceDescription.trim()) {
+      toast({
+        title: "Error",
+        description: "Please provide title and description",
+        variant: "destructive",
+      })
+      return
+    }
+
+    setLoading(true)
+    try {
+      const featuresArray = serviceFeatures
+        .split("\n")
+        .filter((f) => f.trim())
+        .map((f) => f.trim())
+
+      const response = await fetch("/api/services", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: serviceTitle,
+          description: serviceDescription,
+          features: featuresArray,
+          price_from: Number.parseFloat(servicePriceFrom) || null,
+          price_type: servicePriceType,
+          is_featured: serviceIsFeatured,
+          icon_name: serviceIconName,
+        }),
+      })
+
+      if (response.ok) {
+        toast({
+          title: "Success",
+          description: "Service added successfully!",
+        })
+        setServiceTitle("")
+        setServiceDescription("")
+        setServiceFeatures("")
+        setServicePriceFrom("")
+        setServicePriceType("from")
+        setServiceIsFeatured(false)
+        setServiceIconName("FileSpreadsheet")
+        loadServices()
+      } else {
+        throw new Error("Failed to save service")
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: `Failed to add service: ${error.message}`,
+        variant: "destructive",
+      })
+    }
+    setLoading(false)
+  }
+
+  const handleDeleteItem = async (type: string, id: number) => {
+    if (!confirm("Are you sure you want to delete this item?")) return
+
+    try {
+      const response = await fetch(`/api/${type}/${id}`, {
+        method: "DELETE",
+      })
+
+      if (response.ok) {
+        toast({
+          title: "Success",
+          description: "Item deleted successfully!",
+        })
+
+        // Reload the appropriate data
+        switch (type) {
+          case "portfolio/excel":
+          case "portfolio/logos":
+            loadPortfolioItems()
+            break
+          case "certificates":
+            loadCertificates()
+            break
+          case "ms-learn":
+            loadMSLearnProgress()
+            break
+          case "resources":
+            loadResources()
+            break
+          case "services":
+            loadServices()
+            break
+        }
+      } else {
+        throw new Error("Failed to delete item")
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: `Failed to delete item: ${error.message}`,
+        variant: "destructive",
+      })
+    }
+  }
+
   if (!isAuthenticated) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -380,11 +835,16 @@ export default function AdminPage() {
         </div>
 
         <Tabs defaultValue="about" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4">
-            <TabsTrigger value="about">About Me</TabsTrigger>
-            <TabsTrigger value="hero">Hero Section</TabsTrigger>
+          <TabsList className="grid w-full grid-cols-4 lg:grid-cols-8">
+            <TabsTrigger value="about">About</TabsTrigger>
+            <TabsTrigger value="hero">Hero</TabsTrigger>
             <TabsTrigger value="profile">Profile</TabsTrigger>
             <TabsTrigger value="blog">Blog</TabsTrigger>
+            <TabsTrigger value="portfolio">Portfolio</TabsTrigger>
+            <TabsTrigger value="certificates">Certificates</TabsTrigger>
+            <TabsTrigger value="mslearn">MS Learn</TabsTrigger>
+            <TabsTrigger value="resources">Resources</TabsTrigger>
+            <TabsTrigger value="services">Services</TabsTrigger>
           </TabsList>
 
           <TabsContent value="about">
@@ -539,6 +999,595 @@ export default function AdminPage() {
                 </Button>
               </CardContent>
             </Card>
+          </TabsContent>
+
+          <TabsContent value="portfolio">
+            <div className="grid md:grid-cols-2 gap-6">
+              {/* Excel Projects */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center">
+                    <FileSpreadsheet className="w-5 h-5 mr-2" />
+                    Add Excel Project
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="excel-title">Title *</Label>
+                    <Input
+                      id="excel-title"
+                      value={excelTitle}
+                      onChange={(e) => setExcelTitle(e.target.value)}
+                      placeholder="Project title"
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="excel-description">Description</Label>
+                    <Textarea
+                      id="excel-description"
+                      value={excelDescription}
+                      onChange={(e) => setExcelDescription(e.target.value)}
+                      placeholder="Project description"
+                      rows={3}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="excel-file">Excel File *</Label>
+                    <Input
+                      id="excel-file"
+                      type="file"
+                      accept=".xlsx,.xls,.xlsm"
+                      onChange={(e) => setExcelFile(e.target.files)}
+                      required
+                    />
+                  </div>
+                  <Button onClick={handleSaveExcelProject} disabled={loading} className="w-full">
+                    {loading ? "Adding..." : "Add Excel Project"}
+                  </Button>
+                </CardContent>
+              </Card>
+
+              {/* Logo Designs */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center">
+                    <Upload className="w-5 h-5 mr-2" />
+                    Add Logo Design
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="logo-title">Title *</Label>
+                    <Input
+                      id="logo-title"
+                      value={logoTitle}
+                      onChange={(e) => setLogoTitle(e.target.value)}
+                      placeholder="Logo title"
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="logo-description">Description</Label>
+                    <Textarea
+                      id="logo-description"
+                      value={logoDescription}
+                      onChange={(e) => setLogoDescription(e.target.value)}
+                      placeholder="Logo description"
+                      rows={3}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="logo-file">Logo Image *</Label>
+                    <Input
+                      id="logo-file"
+                      type="file"
+                      accept=".jpg,.jpeg,.png,.gif,.webp,.svg"
+                      onChange={(e) => setLogoFile(e.target.files)}
+                      required
+                    />
+                  </div>
+                  <Button onClick={handleSaveLogoDesign} disabled={loading} className="w-full">
+                    {loading ? "Adding..." : "Add Logo Design"}
+                  </Button>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Existing Portfolio Items */}
+            <div className="mt-8 grid md:grid-cols-2 gap-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Excel Projects ({portfolioItems.excel.length})</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2 max-h-64 overflow-y-auto">
+                    {portfolioItems.excel.map((item) => (
+                      <div key={item.id} className="flex justify-between items-center p-2 border rounded">
+                        <div>
+                          <div className="font-medium">{item.title}</div>
+                          <div className="text-sm text-gray-500">{item.description}</div>
+                        </div>
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          onClick={() => handleDeleteItem("portfolio/excel", item.id)}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>Logo Designs ({portfolioItems.logos.length})</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2 max-h-64 overflow-y-auto">
+                    {portfolioItems.logos.map((item) => (
+                      <div key={item.id} className="flex justify-between items-center p-2 border rounded">
+                        <div>
+                          <div className="font-medium">{item.title}</div>
+                          <div className="text-sm text-gray-500">{item.description}</div>
+                        </div>
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          onClick={() => handleDeleteItem("portfolio/logos", item.id)}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="certificates">
+            <div className="grid md:grid-cols-2 gap-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center">
+                    <Award className="w-5 h-5 mr-2" />
+                    Add Certificate
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="cert-title">Title *</Label>
+                    <Input
+                      id="cert-title"
+                      value={certTitle}
+                      onChange={(e) => setCertTitle(e.target.value)}
+                      placeholder="Certificate title"
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="cert-issuer">Issuer</Label>
+                    <Input
+                      id="cert-issuer"
+                      value={certIssuer}
+                      onChange={(e) => setCertIssuer(e.target.value)}
+                      placeholder="Issuing organization"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="cert-date">Date Earned</Label>
+                    <Input id="cert-date" type="date" value={certDate} onChange={(e) => setCertDate(e.target.value)} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="cert-description">Description</Label>
+                    <Textarea
+                      id="cert-description"
+                      value={certDescription}
+                      onChange={(e) => setCertDescription(e.target.value)}
+                      placeholder="Certificate description"
+                      rows={3}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="cert-file">Certificate File *</Label>
+                    <Input
+                      id="cert-file"
+                      type="file"
+                      accept=".pdf,.jpg,.jpeg,.png"
+                      onChange={(e) => setCertFile(e.target.files)}
+                      required
+                    />
+                  </div>
+                  <Button onClick={handleSaveCertificate} disabled={loading} className="w-full">
+                    {loading ? "Adding..." : "Add Certificate"}
+                  </Button>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>Existing Certificates ({certificates.length})</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2 max-h-96 overflow-y-auto">
+                    {certificates.map((cert) => (
+                      <div key={cert.id} className="flex justify-between items-center p-2 border rounded">
+                        <div>
+                          <div className="font-medium">{cert.title}</div>
+                          <div className="text-sm text-gray-500">{cert.issuer}</div>
+                          {cert.date_earned && (
+                            <div className="text-xs text-gray-400">
+                              {new Date(cert.date_earned).toLocaleDateString()}
+                            </div>
+                          )}
+                        </div>
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          onClick={() => handleDeleteItem("certificates", cert.id)}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="mslearn">
+            <div className="grid md:grid-cols-2 gap-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center">
+                    <BookOpen className="w-5 h-5 mr-2" />
+                    Add MS Learn Progress
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="ms-course-name">Course Name *</Label>
+                    <Input
+                      id="ms-course-name"
+                      value={msCourseName}
+                      onChange={(e) => setMsCourseName(e.target.value)}
+                      placeholder="e.g., Microsoft Azure Fundamentals (AZ-900)"
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="ms-description">Description</Label>
+                    <Textarea
+                      id="ms-description"
+                      value={msDescription}
+                      onChange={(e) => setMsDescription(e.target.value)}
+                      placeholder="Course description"
+                      rows={3}
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="ms-progress">Progress %</Label>
+                      <Input
+                        id="ms-progress"
+                        type="number"
+                        min="0"
+                        max="100"
+                        value={msProgress}
+                        onChange={(e) => setMsProgress(e.target.value)}
+                        placeholder="0-100"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="ms-status">Status</Label>
+                      <Select value={msStatus} onValueChange={setMsStatus}>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="not_started">Not Started</SelectItem>
+                          <SelectItem value="in_progress">In Progress</SelectItem>
+                          <SelectItem value="completed">Completed</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="ms-modules-completed">Modules Completed</Label>
+                      <Input
+                        id="ms-modules-completed"
+                        type="number"
+                        min="0"
+                        value={msModulesCompleted}
+                        onChange={(e) => setMsModulesCompleted(e.target.value)}
+                        placeholder="0"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="ms-total-modules">Total Modules</Label>
+                      <Input
+                        id="ms-total-modules"
+                        type="number"
+                        min="0"
+                        value={msTotalModules}
+                        onChange={(e) => setMsTotalModules(e.target.value)}
+                        placeholder="10"
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="ms-estimated-completion">Estimated Completion</Label>
+                    <Input
+                      id="ms-estimated-completion"
+                      type="date"
+                      value={msEstimatedCompletion}
+                      onChange={(e) => setMsEstimatedCompletion(e.target.value)}
+                    />
+                  </div>
+                  <Button onClick={handleSaveMSLearnProgress} disabled={loading} className="w-full">
+                    {loading ? "Adding..." : "Add MS Learn Progress"}
+                  </Button>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>Existing Progress ({msLearnProgress.length})</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2 max-h-96 overflow-y-auto">
+                    {msLearnProgress.map((progress) => (
+                      <div key={progress.id} className="flex justify-between items-center p-2 border rounded">
+                        <div>
+                          <div className="font-medium">{progress.course_name}</div>
+                          <div className="text-sm text-gray-500">
+                            {progress.progress_percentage}% - {progress.status}
+                          </div>
+                        </div>
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          onClick={() => handleDeleteItem("ms-learn", progress.id)}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="resources">
+            <div className="grid md:grid-cols-2 gap-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center">
+                    <ExternalLink className="w-5 h-5 mr-2" />
+                    Add Resource
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="resource-title">Title *</Label>
+                    <Input
+                      id="resource-title"
+                      value={resourceTitle}
+                      onChange={(e) => setResourceTitle(e.target.value)}
+                      placeholder="Resource title"
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="resource-description">Description</Label>
+                    <Textarea
+                      id="resource-description"
+                      value={resourceDescription}
+                      onChange={(e) => setResourceDescription(e.target.value)}
+                      placeholder="Resource description"
+                      rows={3}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="resource-url">URL *</Label>
+                    <Input
+                      id="resource-url"
+                      type="url"
+                      value={resourceUrl}
+                      onChange={(e) => setResourceUrl(e.target.value)}
+                      placeholder="https://example.com"
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="resource-category">Category</Label>
+                    <Select value={resourceCategory} onValueChange={setResourceCategory}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Learning">Learning</SelectItem>
+                        <SelectItem value="Tools">Tools</SelectItem>
+                        <SelectItem value="Documentation">Documentation</SelectItem>
+                        <SelectItem value="Videos">Videos</SelectItem>
+                        <SelectItem value="Websites">Websites</SelectItem>
+                        <SelectItem value="Other">Other</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Checkbox id="resource-is-free" checked={resourceIsFree} onCheckedChange={setResourceIsFree} />
+                    <Label htmlFor="resource-is-free">Free Resource</Label>
+                  </div>
+                  <Button onClick={handleSaveResource} disabled={loading} className="w-full">
+                    {loading ? "Adding..." : "Add Resource"}
+                  </Button>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>Existing Resources ({resources.length})</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2 max-h-96 overflow-y-auto">
+                    {resources.map((resource) => (
+                      <div key={resource.id} className="flex justify-between items-center p-2 border rounded">
+                        <div>
+                          <div className="font-medium">{resource.title}</div>
+                          <div className="text-sm text-gray-500">{resource.category}</div>
+                          <div className="text-xs text-gray-400">{resource.url}</div>
+                        </div>
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          onClick={() => handleDeleteItem("resources", resource.id)}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="services">
+            <div className="grid md:grid-cols-2 gap-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center">
+                    <Settings className="w-5 h-5 mr-2" />
+                    Add Service
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="service-title">Title *</Label>
+                    <Input
+                      id="service-title"
+                      value={serviceTitle}
+                      onChange={(e) => setServiceTitle(e.target.value)}
+                      placeholder="Service title"
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="service-description">Description *</Label>
+                    <Textarea
+                      id="service-description"
+                      value={serviceDescription}
+                      onChange={(e) => setServiceDescription(e.target.value)}
+                      placeholder="Service description"
+                      rows={3}
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="service-features">Features (one per line)</Label>
+                    <Textarea
+                      id="service-features"
+                      value={serviceFeatures}
+                      onChange={(e) => setServiceFeatures(e.target.value)}
+                      placeholder="Custom formulas and functions&#10;Data analysis and reporting&#10;Automated workflows"
+                      rows={4}
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="service-price">Price (£)</Label>
+                      <Input
+                        id="service-price"
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        value={servicePriceFrom}
+                        onChange={(e) => setServicePriceFrom(e.target.value)}
+                        placeholder="50.00"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="service-price-type">Price Type</Label>
+                      <Select value={servicePriceType} onValueChange={setServicePriceType}>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="from">From</SelectItem>
+                          <SelectItem value="fixed">Fixed</SelectItem>
+                          <SelectItem value="hourly">Hourly</SelectItem>
+                          <SelectItem value="contact">Contact</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="service-icon">Icon</Label>
+                    <Select value={serviceIconName} onValueChange={setServiceIconName}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="FileSpreadsheet">FileSpreadsheet</SelectItem>
+                        <SelectItem value="Palette">Palette</SelectItem>
+                        <SelectItem value="Settings">Settings</SelectItem>
+                        <SelectItem value="Lightbulb">Lightbulb</SelectItem>
+                        <SelectItem value="Users">Users</SelectItem>
+                        <SelectItem value="Clock">Clock</SelectItem>
+                        <SelectItem value="Award">Award</SelectItem>
+                        <SelectItem value="Zap">Zap</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="service-is-featured"
+                      checked={serviceIsFeatured}
+                      onCheckedChange={setServiceIsFeatured}
+                    />
+                    <Label htmlFor="service-is-featured">Featured Service</Label>
+                  </div>
+                  <Button onClick={handleSaveService} disabled={loading} className="w-full">
+                    {loading ? "Adding..." : "Add Service"}
+                  </Button>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>Existing Services ({services.length})</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2 max-h-96 overflow-y-auto">
+                    {services.map((service) => (
+                      <div key={service.id} className="flex justify-between items-center p-2 border rounded">
+                        <div>
+                          <div className="font-medium">{service.title}</div>
+                          <div className="text-sm text-gray-500">
+                            {service.price_from ? `£${service.price_from}` : "Contact for pricing"}
+                            {service.is_featured && <span className="ml-2 text-yellow-600">★ Featured</span>}
+                          </div>
+                        </div>
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          onClick={() => handleDeleteItem("services", service.id)}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
           </TabsContent>
         </Tabs>
       </div>

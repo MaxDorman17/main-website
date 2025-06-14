@@ -3,6 +3,29 @@ import { neon } from "@neondatabase/serverless"
 
 const sql = neon(process.env.DATABASE_URL!)
 
+export async function GET() {
+  try {
+    // Create table if it doesn't exist
+    await sql`
+      CREATE TABLE IF EXISTS certificates (
+        id SERIAL PRIMARY KEY,
+        title VARCHAR(255) NOT NULL,
+        issuer VARCHAR(255),
+        description TEXT,
+        file_url TEXT NOT NULL,
+        date_earned DATE,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `
+
+    const result = await sql`SELECT * FROM certificates ORDER BY date_earned DESC, created_at DESC`
+    return NextResponse.json(result)
+  } catch (error) {
+    console.error("Error fetching certificates:", error)
+    return NextResponse.json({ error: "Failed to fetch certificates" }, { status: 500 })
+  }
+}
+
 export async function POST(request: NextRequest) {
   try {
     const { title, issuer, description, file_url, date_earned } = await request.json()

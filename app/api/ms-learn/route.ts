@@ -3,6 +3,32 @@ import { neon } from "@neondatabase/serverless"
 
 const sql = neon(process.env.DATABASE_URL!)
 
+export async function GET() {
+  try {
+    // Create table if it doesn't exist
+    await sql`
+      CREATE TABLE IF NOT EXISTS ms_learn_progress (
+        id SERIAL PRIMARY KEY,
+        course_name VARCHAR(255) NOT NULL,
+        description TEXT,
+        progress_percentage INTEGER DEFAULT 0 CHECK (progress_percentage >= 0 AND progress_percentage <= 100),
+        status VARCHAR(20) DEFAULT 'not_started' CHECK (status IN ('not_started', 'in_progress', 'completed')),
+        modules_completed INTEGER DEFAULT 0,
+        total_modules INTEGER,
+        estimated_completion DATE,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `
+
+    const result = await sql`SELECT * FROM ms_learn_progress ORDER BY updated_at DESC`
+    return NextResponse.json(result)
+  } catch (error) {
+    console.error("Error fetching MS Learn progress:", error)
+    return NextResponse.json({ error: "Failed to fetch MS Learn progress" }, { status: 500 })
+  }
+}
+
 export async function POST(request: NextRequest) {
   try {
     const {
