@@ -22,6 +22,7 @@ import {
   ExternalLink,
   Settings,
   Trash2,
+  Calendar,
 } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 
@@ -98,6 +99,13 @@ export default function AdminPage() {
   const [resources, setResources] = useState([])
   const [services, setServices] = useState([])
 
+  // Booking management states
+  const [bookings, setBookings] = useState([])
+  const [availability, setAvailability] = useState([])
+  const [newSlotDay, setNewSlotDay] = useState("")
+  const [newSlotStartTime, setNewSlotStartTime] = useState("")
+  const [newSlotEndTime, setNewSlotEndTime] = useState("")
+
   // Load existing content when authenticated
   useEffect(() => {
     if (isAuthenticated) {
@@ -109,6 +117,8 @@ export default function AdminPage() {
       loadResources()
       loadServices()
       loadBlogPosts()
+      loadBookings()
+      loadAvailability()
     }
   }, [isAuthenticated])
 
@@ -213,6 +223,126 @@ export default function AdminPage() {
       }
     } catch (error) {
       console.error("Failed to load services:", error)
+    }
+  }
+
+  const loadBookings = async () => {
+    try {
+      const response = await fetch("/api/bookings")
+      if (response.ok) {
+        const data = await response.json()
+        setBookings(data)
+      }
+    } catch (error) {
+      console.error("Failed to load bookings:", error)
+    }
+  }
+
+  const loadAvailability = async () => {
+    try {
+      const response = await fetch("/api/availability")
+      if (response.ok) {
+        const data = await response.json()
+        setAvailability(data)
+      }
+    } catch (error) {
+      console.error("Failed to load availability:", error)
+    }
+  }
+
+  const handleUpdateBookingStatus = async (bookingId, status) => {
+    try {
+      const response = await fetch(`/api/bookings/${bookingId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status }),
+      })
+
+      if (response.ok) {
+        toast({
+          title: "Success",
+          description: "Booking status updated successfully!",
+        })
+        loadBookings()
+      } else {
+        throw new Error("Failed to update booking status")
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: `Failed to update booking: ${error.message}`,
+        variant: "destructive",
+      })
+    }
+  }
+
+  const handleAddAvailabilitySlot = async () => {
+    if (!newSlotDay || !newSlotStartTime || !newSlotEndTime) {
+      toast({
+        title: "Error",
+        description: "Please fill in all availability fields",
+        variant: "destructive",
+      })
+      return
+    }
+
+    setLoading(true)
+    try {
+      const response = await fetch("/api/availability", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          day_of_week: Number.parseInt(newSlotDay),
+          start_time: newSlotStartTime,
+          end_time: newSlotEndTime,
+        }),
+      })
+
+      if (response.ok) {
+        toast({
+          title: "Success",
+          description: "Availability slot added successfully!",
+        })
+        setNewSlotDay("")
+        setNewSlotStartTime("")
+        setNewSlotEndTime("")
+        loadAvailability()
+      } else {
+        throw new Error("Failed to add availability slot")
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: `Failed to add availability: ${error.message}`,
+        variant: "destructive",
+      })
+    }
+    setLoading(false)
+  }
+
+  const handleDeleteAvailabilitySlot = async (slotId) => {
+    if (!confirm("Are you sure you want to delete this availability slot?")) return
+
+    try {
+      const response = await fetch(`/api/availability/${slotId}`, {
+        method: "DELETE",
+      })
+
+      if (response.ok) {
+        toast({
+          title: "Success",
+          description: "Availability slot deleted successfully!",
+        })
+        loadAvailability()
+      } else {
+        throw new Error("Failed to delete availability slot")
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: `Failed to delete availability: ${error.message}`,
+        variant: "destructive",
+      })
     }
   }
 
@@ -950,7 +1080,7 @@ export default function AdminPage() {
         </div>
 
         <Tabs defaultValue="about" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4 lg:grid-cols-8">
+          <TabsList className="grid w-full grid-cols-5 lg:grid-cols-9">
             <TabsTrigger value="about">About</TabsTrigger>
             <TabsTrigger value="hero">Hero</TabsTrigger>
             <TabsTrigger value="profile">Profile</TabsTrigger>
@@ -960,6 +1090,7 @@ export default function AdminPage() {
             <TabsTrigger value="mslearn">MS Learn</TabsTrigger>
             <TabsTrigger value="resources">Resources</TabsTrigger>
             <TabsTrigger value="services">Services</TabsTrigger>
+            <TabsTrigger value="bookings">Bookings</TabsTrigger>
           </TabsList>
 
           <TabsContent value="about">
@@ -1775,6 +1906,158 @@ export default function AdminPage() {
                         </Button>
                       </div>
                     ))}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
+          <TabsContent value="bookings">
+            <div className="grid md:grid-cols-2 gap-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center">
+                    <Calendar className="w-5 h-5 mr-2" />
+                    Manage Availability
+                  </CardTitle>
+                  <CardDescription>Set your available time slots for bookings</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid grid-cols-3 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="slot-day">Day of Week</Label>
+                      <Select value={newSlotDay} onValueChange={setNewSlotDay}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select day" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="1">Monday</SelectItem>
+                          <SelectItem value="2">Tuesday</SelectItem>
+                          <SelectItem value="3">Wednesday</SelectItem>
+                          <SelectItem value="4">Thursday</SelectItem>
+                          <SelectItem value="5">Friday</SelectItem>
+                          <SelectItem value="6">Saturday</SelectItem>
+                          <SelectItem value="0">Sunday</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="slot-start">Start Time</Label>
+                      <Input
+                        id="slot-start"
+                        type="time"
+                        value={newSlotStartTime}
+                        onChange={(e) => setNewSlotStartTime(e.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="slot-end">End Time</Label>
+                      <Input
+                        id="slot-end"
+                        type="time"
+                        value={newSlotEndTime}
+                        onChange={(e) => setNewSlotEndTime(e.target.value)}
+                      />
+                    </div>
+                  </div>
+                  <Button onClick={handleAddAvailabilitySlot} disabled={loading} className="w-full">
+                    {loading ? "Adding..." : "Add Availability Slot"}
+                  </Button>
+
+                  <div className="space-y-2 max-h-64 overflow-y-auto">
+                    <h4 className="font-medium">Current Availability</h4>
+                    {availability.map((slot) => (
+                      <div key={slot.id} className="flex justify-between items-center p-2 border rounded">
+                        <div>
+                          <div className="font-medium">
+                            {
+                              ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"][
+                                slot.day_of_week
+                              ]
+                            }
+                          </div>
+                          <div className="text-sm text-gray-500">
+                            {slot.start_time} - {slot.end_time}
+                          </div>
+                        </div>
+                        <Button variant="destructive" size="sm" onClick={() => handleDeleteAvailabilitySlot(slot.id)}>
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>Booking Requests ({bookings.length})</CardTitle>
+                  <CardDescription>Manage client booking requests</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3 max-h-96 overflow-y-auto">
+                    {bookings.length > 0 ? (
+                      bookings.map((booking) => (
+                        <div key={booking.id} className="p-3 border rounded-lg">
+                          <div className="flex justify-between items-start">
+                            <div className="flex-1">
+                              <h4 className="font-medium">{booking.client_name}</h4>
+                              <p className="text-sm text-gray-600">{booking.client_email}</p>
+                              <p className="text-sm text-gray-500">
+                                {new Date(booking.booking_date).toLocaleDateString()} at {booking.booking_time}
+                              </p>
+                              <p className="text-sm text-gray-500">Service: {booking.service_type}</p>
+                              {booking.message && <p className="text-xs text-gray-400 mt-1">"{booking.message}"</p>}
+                              <div className="flex gap-2 mt-2">
+                                <span
+                                  className={`text-xs px-2 py-1 rounded ${
+                                    booking.status === "confirmed"
+                                      ? "bg-green-100 text-green-800"
+                                      : booking.status === "cancelled"
+                                        ? "bg-red-100 text-red-800"
+                                        : booking.status === "completed"
+                                          ? "bg-blue-100 text-blue-800"
+                                          : "bg-yellow-100 text-yellow-800"
+                                  }`}
+                                >
+                                  {booking.status}
+                                </span>
+                              </div>
+                            </div>
+                            <div className="flex flex-col gap-1 ml-2">
+                              {booking.status === "pending" && (
+                                <>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => handleUpdateBookingStatus(booking.id, "confirmed")}
+                                  >
+                                    Confirm
+                                  </Button>
+                                  <Button
+                                    variant="destructive"
+                                    size="sm"
+                                    onClick={() => handleUpdateBookingStatus(booking.id, "cancelled")}
+                                  >
+                                    Cancel
+                                  </Button>
+                                </>
+                              )}
+                              {booking.status === "confirmed" && (
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => handleUpdateBookingStatus(booking.id, "completed")}
+                                >
+                                  Complete
+                                </Button>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      ))
+                    ) : (
+                      <p className="text-gray-500 text-center py-4">No booking requests yet</p>
+                    )}
                   </div>
                 </CardContent>
               </Card>

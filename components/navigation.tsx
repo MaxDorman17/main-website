@@ -2,7 +2,6 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { ThemeToggle } from "./theme-toggle"
 import { Button } from "@/components/ui/button"
 import { Linkedin, ExternalLink, Zap, Menu, X, Settings } from "lucide-react"
 import { cn } from "@/lib/utils"
@@ -17,6 +16,7 @@ const navigation = [
   { name: "Certificates", href: "/certificates" },
   { name: "MS Learn", href: "/ms-learn" },
   { name: "Resources", href: "/resources" },
+  { name: "Book", href: "/book" },
   { name: "Contact", href: "/contact" },
   { name: "Admin", href: "/admin", icon: <Settings className="w-4 h-4" /> },
 ]
@@ -60,12 +60,10 @@ export function Navigation() {
                   Fiverr
                 </Button>
               </Link>
-              <ThemeToggle />
             </div>
 
             {/* Mobile Menu Button */}
-            <div className="md:hidden flex items-center space-x-2">
-              <ThemeToggle />
+            <div className="md:hidden">
               <Button
                 variant="ghost"
                 size="sm"

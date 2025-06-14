@@ -5,25 +5,18 @@ const sql = neon(process.env.DATABASE_URL!)
 
 export async function GET() {
   try {
-    // Create table if it doesn't exist - using proper syntax
-    try {
-      await sql`
-        CREATE TABLE certificates (
-          id SERIAL PRIMARY KEY,
-          title VARCHAR(255) NOT NULL,
-          issuer VARCHAR(255),
-          description TEXT,
-          file_url TEXT NOT NULL,
-          date_earned DATE,
-          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        )
-      `
-    } catch (error) {
-      // Table already exists, ignore error
-      if (!error.message.includes("already exists")) {
-        throw error
-      }
-    }
+    // Create table if it doesn't exist
+    await sql`
+      CREATE TABLE IF EXISTS certificates (
+        id SERIAL PRIMARY KEY,
+        title VARCHAR(255) NOT NULL,
+        issuer VARCHAR(255),
+        description TEXT,
+        file_url TEXT NOT NULL,
+        date_earned DATE,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `
 
     const result = await sql`SELECT * FROM certificates ORDER BY date_earned DESC, created_at DESC`
     return NextResponse.json(result)
