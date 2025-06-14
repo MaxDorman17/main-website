@@ -38,6 +38,11 @@ export default function AdminPage() {
   const [blogContent, setBlogContent] = useState("")
   const [blogFiles, setBlogFiles] = useState<FileList | null>(null)
 
+  // Blog management states
+  const [blogPosts, setBlogPosts] = useState([])
+  const [editingBlogPost, setEditingBlogPost] = useState(null)
+  const [isEditMode, setIsEditMode] = useState(false)
+
   // Hero content states
   const [heroTagline, setHeroTagline] = useState("")
   const [heroSubtitle, setHeroSubtitle] = useState("")
@@ -103,6 +108,7 @@ export default function AdminPage() {
       loadMSLearnProgress()
       loadResources()
       loadServices()
+      loadBlogPosts()
     }
   }, [isAuthenticated])
 
@@ -117,6 +123,18 @@ export default function AdminPage() {
       }
     } catch (error) {
       console.error("Failed to load about me:", error)
+    }
+  }
+
+  const loadBlogPosts = async () => {
+    try {
+      const response = await fetch("/api/blog-posts")
+      if (response.ok) {
+        const data = await response.json()
+        setBlogPosts(data)
+      }
+    } catch (error) {
+      console.error("Failed to load blog posts:", error)
     }
   }
 
@@ -371,6 +389,100 @@ export default function AdminPage() {
       })
     }
     setLoading(false)
+  }
+
+  const handleEditBlogPost = (post) => {
+    setEditingBlogPost(post)
+    setBlogTitle(post.title)
+    setBlogContent(post.content)
+    setIsEditMode(true)
+    setBlogFiles(null)
+    const fileInput = document.getElementById("blog-files") as HTMLInputElement
+    if (fileInput) fileInput.value = ""
+  }
+
+  const handleUpdateBlogPost = async () => {
+    if (!blogTitle.trim() || !blogContent.trim() || !editingBlogPost) {
+      toast({
+        title: "Error",
+        description: "Please fill in both title and content",
+        variant: "destructive",
+      })
+      return
+    }
+
+    setLoading(true)
+    try {
+      const response = await fetch(`/api/blog/${editingBlogPost.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: blogTitle,
+          content: blogContent,
+        }),
+      })
+
+      if (response.ok) {
+        toast({
+          title: "Success",
+          description: "Blog post updated successfully!",
+        })
+        setBlogTitle("")
+        setBlogContent("")
+        setBlogFiles(null)
+        setEditingBlogPost(null)
+        setIsEditMode(false)
+        const fileInput = document.getElementById("blog-files") as HTMLInputElement
+        if (fileInput) fileInput.value = ""
+        loadBlogPosts()
+      } else {
+        const errorData = await response.json()
+        throw new Error(errorData.error || "Update failed")
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: `Failed to update blog post: ${error.message}`,
+        variant: "destructive",
+      })
+    }
+    setLoading(false)
+  }
+
+  const handleDeleteBlogPost = async (postId) => {
+    if (!confirm("Are you sure you want to delete this blog post?")) return
+
+    try {
+      const response = await fetch(`/api/blog/${postId}`, {
+        method: "DELETE",
+      })
+
+      if (response.ok) {
+        toast({
+          title: "Success",
+          description: "Blog post deleted successfully!",
+        })
+        loadBlogPosts()
+      } else {
+        throw new Error("Failed to delete blog post")
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: `Failed to delete blog post: ${error.message}`,
+        variant: "destructive",
+      })
+    }
+  }
+
+  const handleCancelEdit = () => {
+    setEditingBlogPost(null)
+    setIsEditMode(false)
+    setBlogTitle("")
+    setBlogContent("")
+    setBlogFiles(null)
+    const fileInput = document.getElementById("blog-files") as HTMLInputElement
+    if (fileInput) fileInput.value = ""
   }
 
   const handleSaveProfilePicture = async () => {
@@ -770,6 +882,9 @@ export default function AdminPage() {
           case "services":
             loadServices()
             break
+          case "blog":
+            loadBlogPosts()
+            break
         }
       } else {
         throw new Error("Failed to delete item")
@@ -956,49 +1071,125 @@ export default function AdminPage() {
           </TabsContent>
 
           <TabsContent value="blog">
-            <Card>
-              <CardHeader>
-                <CardTitle>Create New Blog Post</CardTitle>
-                <CardDescription>Add a new blog post with optional file attachments</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="blog-title">Title *</Label>
-                  <Input
-                    id="blog-title"
-                    value={blogTitle}
-                    onChange={(e) => setBlogTitle(e.target.value)}
-                    placeholder="Enter blog post title"
-                    required
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="blog-content">Content *</Label>
-                  <Textarea
-                    id="blog-content"
-                    value={blogContent}
-                    onChange={(e) => setBlogContent(e.target.value)}
-                    rows={10}
-                    placeholder="Enter blog post content (HTML supported)"
-                    required
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="blog-files">Attachments (Images & PDFs)</Label>
-                  <Input
-                    id="blog-files"
-                    type="file"
-                    multiple
-                    accept=".pdf,.jpg,.jpeg,.png,.gif,.webp"
-                    onChange={(e) => setBlogFiles(e.target.files)}
-                  />
-                  <p className="text-sm text-gray-500">Supported formats: PDF, JPG, PNG, GIF, WebP</p>
-                </div>
-                <Button onClick={handleSaveBlogPost} disabled={loading}>
-                  {loading ? "Creating..." : "Create Blog Post"}
-                </Button>
-              </CardContent>
-            </Card>
+            <div className="grid md:grid-cols-2 gap-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle>{isEditMode ? "Edit Blog Post" : "Create New Blog Post"}</CardTitle>
+                  <CardDescription>
+                    {isEditMode
+                      ? "Update your existing blog post"
+                      : "Add a new blog post with optional file attachments"}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {isEditMode && (
+                    <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                      <p className="text-sm text-blue-800">
+                        Editing: <strong>{editingBlogPost?.title}</strong>
+                      </p>
+                    </div>
+                  )}
+                  <div className="space-y-2">
+                    <Label htmlFor="blog-title">Title *</Label>
+                    <Input
+                      id="blog-title"
+                      value={blogTitle}
+                      onChange={(e) => setBlogTitle(e.target.value)}
+                      placeholder="Enter blog post title"
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="blog-content">Content *</Label>
+                    <Textarea
+                      id="blog-content"
+                      value={blogContent}
+                      onChange={(e) => setBlogContent(e.target.value)}
+                      rows={10}
+                      placeholder="Enter blog post content (HTML supported)"
+                      required
+                    />
+                  </div>
+                  {!isEditMode && (
+                    <div className="space-y-2">
+                      <Label htmlFor="blog-files">Attachments (Images & PDFs)</Label>
+                      <Input
+                        id="blog-files"
+                        type="file"
+                        multiple
+                        accept=".pdf,.jpg,.jpeg,.png,.gif,.webp"
+                        onChange={(e) => setBlogFiles(e.target.files)}
+                      />
+                      <p className="text-sm text-gray-500">Supported formats: PDF, JPG, PNG, GIF, WebP</p>
+                    </div>
+                  )}
+                  <div className="flex gap-2">
+                    {isEditMode ? (
+                      <>
+                        <Button onClick={handleUpdateBlogPost} disabled={loading}>
+                          {loading ? "Updating..." : "Update Blog Post"}
+                        </Button>
+                        <Button variant="outline" onClick={handleCancelEdit}>
+                          Cancel
+                        </Button>
+                      </>
+                    ) : (
+                      <Button onClick={handleSaveBlogPost} disabled={loading}>
+                        {loading ? "Creating..." : "Create Blog Post"}
+                      </Button>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>Existing Blog Posts ({blogPosts.length})</CardTitle>
+                  <CardDescription>Manage your published blog posts</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3 max-h-96 overflow-y-auto">
+                    {blogPosts.length > 0 ? (
+                      blogPosts.map((post) => (
+                        <div key={post.id} className="p-3 border rounded-lg">
+                          <div className="flex justify-between items-start">
+                            <div className="flex-1">
+                              <h4 className="font-medium text-sm">{post.title}</h4>
+                              <p className="text-xs text-gray-500 mt-1">
+                                Created: {new Date(post.created_at).toLocaleDateString()}
+                              </p>
+                              {post.updated_at !== post.created_at && (
+                                <p className="text-xs text-gray-500">
+                                  Updated: {new Date(post.updated_at).toLocaleDateString()}
+                                </p>
+                              )}
+                              <div className="text-xs text-gray-400 mt-1">
+                                Content: {post.content.replace(/<[^>]*>/g, "").substring(0, 100)}...
+                              </div>
+                            </div>
+                            <div className="flex gap-1 ml-2">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleEditBlogPost(post)}
+                                disabled={isEditMode}
+                              >
+                                Edit
+                              </Button>
+                              <Button variant="destructive" size="sm" onClick={() => handleDeleteBlogPost(post.id)}>
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            </div>
+                          </div>
+                        </div>
+                      ))
+                    ) : (
+                      <p className="text-gray-500 text-center py-4">No blog posts yet</p>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
           </TabsContent>
 
           <TabsContent value="portfolio">
