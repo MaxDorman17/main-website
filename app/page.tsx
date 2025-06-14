@@ -1,6 +1,17 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import Link from "next/link"
-import { FileText, Award, BookOpen, MessageCircle, Briefcase, User, ExternalLink, Zap, Heart, Star } from "lucide-react"
+import {
+  FileText,
+  Award,
+  BookOpen,
+  MessageCircle,
+  Briefcase,
+  User,
+  ExternalLink,
+  Zap,
+  Star,
+  Sparkles,
+} from "lucide-react"
 import { neon } from "@neondatabase/serverless"
 import { Navigation } from "@/components/navigation"
 import type { Metadata } from "next"
@@ -70,7 +81,7 @@ export default async function HomePage() {
           <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
             {/* Hero Section */}
             <div className="text-center mb-16 relative">
-              {/* Enhanced Floating Elements with Pink */}
+              {/* Enhanced Floating Elements with Stars */}
               <div className="absolute top-10 left-10 w-20 h-20 border border-neon-purple/30 rounded-full animate-float"></div>
               <div
                 className="absolute top-20 right-20 w-16 h-16 border border-neon-pink/40 rounded-lg rotate-45 animate-float animate-pink-pulse"
@@ -80,13 +91,17 @@ export default async function HomePage() {
                 className="absolute bottom-20 left-1/4 w-12 h-12 border border-neon-cyan/30 rounded-full animate-float"
                 style={{ animationDelay: "2s" }}
               ></div>
-              <Heart
+              <Star
                 className="absolute top-32 right-1/4 w-8 h-8 text-neon-pink animate-pulse"
                 style={{ animationDelay: "0.5s" }}
               />
-              <Star
+              <Sparkles
                 className="absolute bottom-32 right-10 w-6 h-6 text-neon-magenta animate-pulse"
                 style={{ animationDelay: "1.5s" }}
+              />
+              <Star
+                className="absolute top-40 left-16 w-5 h-5 text-neon-cyan animate-pulse"
+                style={{ animationDelay: "2.5s" }}
               />
 
               {/* Profile Picture with Enhanced Neon Glow */}
@@ -114,7 +129,7 @@ export default async function HomePage() {
                   Exploring Microsoft technologies and building digital solutions from the heart of
                   <span className="text-neon-pink font-semibold ml-1">Scotland</span>
                 </p>
-                <Heart className="w-6 h-6 text-neon-pink ml-2 animate-pulse" />
+                <Star className="w-6 h-6 text-neon-pink ml-2 animate-pulse" />
               </div>
             </div>
 
@@ -126,7 +141,7 @@ export default async function HomePage() {
                 <CardTitle className="text-3xl text-glow flex items-center">
                   <User className="w-8 h-8 mr-3 text-primary" />
                   About Me
-                  <Heart className="w-6 h-6 ml-3 text-neon-pink animate-pulse" />
+                  <Star className="w-6 h-6 ml-3 text-neon-pink animate-pulse" />
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -157,7 +172,7 @@ export default async function HomePage() {
 
             <div className="section-divider"></div>
 
-            {/* Quick Links Grid with Pink Accents */}
+            {/* Quick Links Grid with Star Accents */}
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
               <Link href="/blog" className="group">
                 <Card className="cyber-card hover:scale-105 transition-all duration-300 group-hover:pink-glow">
@@ -260,21 +275,23 @@ export default async function HomePage() {
         </div>
       </div>
 
-      {/* Footer with Pink Accents */}
+      {/* Footer with Star Accents */}
       <footer className="bg-background/80 backdrop-blur-sm border-t border-primary/20 text-muted-foreground py-8 mt-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <div className="section-divider mb-4"></div>
-          <p className="mb-4 text-primary/80">
-            © 2024 <span className="text-neon-pink">Max Dorman</span>. All rights reserved.
+          <p className="mb-4 text-primary/80 flex items-center justify-center">
+            © 2024 <span className="text-neon-pink mx-2">Max Dorman</span>. All rights reserved.
+            <Star className="w-4 h-4 text-neon-pink ml-2 animate-pulse" />
           </p>
-          <p>
+          <p className="flex items-center justify-center">
             Contact:{" "}
             <a
               href="mailto:maxd@ittechs.io"
-              className="text-neon-pink hover:text-primary transition-colors hover:text-glow"
+              className="text-neon-pink hover:text-primary transition-colors hover:text-glow mx-2"
             >
               maxd@ittechs.io
             </a>
+            <Sparkles className="w-4 h-4 text-neon-cyan animate-pulse" />
           </p>
         </div>
       </footer>
