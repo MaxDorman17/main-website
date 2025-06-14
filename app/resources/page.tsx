@@ -62,17 +62,17 @@ export default async function ResourcesPage() {
   const getCategoryColor = (category: string) => {
     switch (category.toLowerCase()) {
       case "learning":
-        return "text-blue-600"
+        return "text-blue-400"
       case "tools":
-        return "text-green-600"
+        return "text-green-400"
       case "documentation":
-        return "text-purple-600"
+        return "text-purple-400"
       case "videos":
-        return "text-red-600"
+        return "text-red-400"
       case "websites":
-        return "text-orange-600"
+        return "text-orange-400"
       default:
-        return "text-gray-600"
+        return "text-muted-foreground"
     }
   }
 
@@ -82,9 +82,10 @@ export default async function ResourcesPage() {
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="text-center mb-12">
-          <h1 className="text-4xl font-bold text-foreground mb-4">Resources</h1>
+          <h1 className="text-4xl font-bold text-foreground mb-4 hero-title">Resources</h1>
           <p className="text-xl text-muted-foreground">
-            Useful tools, learning materials, and resources for Microsoft technologies and development
+            Useful <span className="text-neon-pink">tools</span>, learning materials, and resources for{" "}
+            <span className="text-neon-cyan">Microsoft technologies</span> and development
           </p>
         </div>
 
@@ -104,7 +105,10 @@ export default async function ResourcesPage() {
                 </h2>
                 <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
                   {categoryResources.map((resource) => (
-                    <Card key={resource.id} className="hover:shadow-lg transition-shadow">
+                    <Card
+                      key={resource.id}
+                      className="cyber-card hover:scale-105 transition-all duration-300 hover:pink-glow"
+                    >
                       <CardHeader>
                         <CardTitle className="text-lg">{resource.title}</CardTitle>
                         <CardDescription>{resource.description}</CardDescription>
@@ -118,7 +122,9 @@ export default async function ResourcesPage() {
                             </Button>
                           </Link>
                           {resource.is_free && (
-                            <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full">Free</span>
+                            <span className="text-xs bg-green-500/20 text-green-400 px-2 py-1 rounded-full border border-green-500/30">
+                              Free
+                            </span>
                           )}
                         </div>
                         <div className="text-xs text-muted-foreground mt-2">
@@ -132,7 +138,7 @@ export default async function ResourcesPage() {
             ))}
           </div>
         ) : (
-          <Card>
+          <Card className="cyber-card">
             <CardContent className="text-center py-12">
               <BookOpen className="w-16 h-16 mx-auto text-muted-foreground mb-4" />
               <h3 className="text-xl font-semibold text-foreground mb-2">No resources yet</h3>
