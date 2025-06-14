@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Upload, Eye, EyeOff, ImageIcon, Zap } from "lucide-react"
+import { Upload, Eye, EyeOff, Zap } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 
 export default function AdminPage() {
@@ -64,24 +64,11 @@ export default function AdminPage() {
   const [resourceCategory, setResourceCategory] = useState("")
   const [resourceIsFree, setResourceIsFree] = useState(true)
 
-  // Content management states
-  const [allContent, setAllContent] = useState({
-    blogPosts: [],
-    excelProjects: [],
-    logoDesigns: [],
-    certificates: [],
-    msLearnProgress: [],
-    resources: [],
-  })
-  const [editingItem, setEditingItem] = useState(null)
-  const [editForm, setEditForm] = useState({})
-
   // Load existing content when authenticated
   useEffect(() => {
     if (isAuthenticated) {
       loadAboutMe()
       loadHeroContent()
-      loadAllContent()
     }
   }, [isAuthenticated])
 
@@ -114,27 +101,6 @@ export default function AdminPage() {
       }
     } catch (error) {
       console.error("Failed to load hero content:", error)
-    }
-  }
-
-  const loadAllContent = async () => {
-    try {
-      const [adminResponse, resourcesResponse] = await Promise.all([
-        fetch("/api/admin/content"),
-        fetch("/api/resources"),
-      ])
-
-      if (adminResponse.ok) {
-        const adminData = await adminResponse.json()
-        const resourcesData = resourcesResponse.ok ? await resourcesResponse.json() : []
-
-        setAllContent({
-          ...adminData,
-          resources: resourcesData,
-        })
-      }
-    } catch (error) {
-      console.error("Failed to load content:", error)
     }
   }
 
@@ -314,215 +280,6 @@ export default function AdminPage() {
     setLoading(false)
   }
 
-  const handleSaveExcelProject = async () => {
-    if (!excelTitle.trim() || !excelFile || excelFile.length === 0) {
-      toast({
-        title: "Error",
-        description: "Please provide title and Excel file",
-        variant: "destructive",
-      })
-      return
-    }
-
-    setLoading(true)
-    try {
-      const uploadedFiles = await handleFileUpload(excelFile, "portfolio/excel")
-      if (!uploadedFiles || uploadedFiles.length === 0) {
-        setLoading(false)
-        return
-      }
-
-      const response = await fetch("/api/portfolio/excel", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          title: excelTitle,
-          description: excelDescription,
-          file_url: uploadedFiles[0].url,
-        }),
-      })
-
-      if (response.ok) {
-        toast({
-          title: "Success",
-          description: "Excel project added successfully!",
-        })
-        setExcelTitle("")
-        setExcelDescription("")
-        setExcelFile(null)
-        const fileInput = document.getElementById("excel-file") as HTMLInputElement
-        if (fileInput) fileInput.value = ""
-      } else {
-        throw new Error("Failed to save Excel project")
-      }
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: `Failed to add Excel project: ${error.message}`,
-        variant: "destructive",
-      })
-    }
-    setLoading(false)
-  }
-
-  const handleSaveLogoDesign = async () => {
-    if (!logoTitle.trim() || !logoFile || logoFile.length === 0) {
-      toast({
-        title: "Error",
-        description: "Please provide title and logo image",
-        variant: "destructive",
-      })
-      return
-    }
-
-    setLoading(true)
-    try {
-      const uploadedFiles = await handleFileUpload(logoFile, "portfolio/logos")
-      if (!uploadedFiles || uploadedFiles.length === 0) {
-        setLoading(false)
-        return
-      }
-
-      const response = await fetch("/api/portfolio/logos", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          title: logoTitle,
-          description: logoDescription,
-          image_url: uploadedFiles[0].url,
-        }),
-      })
-
-      if (response.ok) {
-        toast({
-          title: "Success",
-          description: "Logo design added successfully!",
-        })
-        setLogoTitle("")
-        setLogoDescription("")
-        setLogoFile(null)
-        const fileInput = document.getElementById("logo-file") as HTMLInputElement
-        if (fileInput) fileInput.value = ""
-      } else {
-        throw new Error("Failed to save logo design")
-      }
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: `Failed to add logo design: ${error.message}`,
-        variant: "destructive",
-      })
-    }
-    setLoading(false)
-  }
-
-  const handleSaveCertificate = async () => {
-    if (!certTitle.trim() || !certFile || certFile.length === 0) {
-      toast({
-        title: "Error",
-        description: "Please provide title and certificate PDF",
-        variant: "destructive",
-      })
-      return
-    }
-
-    setLoading(true)
-    try {
-      const uploadedFiles = await handleFileUpload(certFile, "certificates")
-      if (!uploadedFiles || uploadedFiles.length === 0) {
-        setLoading(false)
-        return
-      }
-
-      const response = await fetch("/api/certificates", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          title: certTitle,
-          issuer: certIssuer,
-          description: certDescription,
-          file_url: uploadedFiles[0].url,
-          date_earned: certDate || null,
-        }),
-      })
-
-      if (response.ok) {
-        toast({
-          title: "Success",
-          description: "Certificate added successfully!",
-        })
-        setCertTitle("")
-        setCertIssuer("")
-        setCertDescription("")
-        setCertDate("")
-        setCertFile(null)
-        const fileInput = document.getElementById("cert-file") as HTMLInputElement
-        if (fileInput) fileInput.value = ""
-      } else {
-        throw new Error("Failed to save certificate")
-      }
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: `Failed to add certificate: ${error.message}`,
-        variant: "destructive",
-      })
-    }
-    setLoading(false)
-  }
-
-  const handleSaveMSLearnProgress = async () => {
-    if (!msCourseName.trim()) {
-      toast({
-        title: "Error",
-        description: "Please provide course name",
-        variant: "destructive",
-      })
-      return
-    }
-
-    setLoading(true)
-    try {
-      const response = await fetch("/api/ms-learn", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          course_name: msCourseName,
-          description: msDescription,
-          progress_percentage: Number.parseInt(msProgress) || 0,
-          status: msStatus || "not_started",
-          modules_completed: Number.parseInt(msModulesCompleted) || 0,
-          total_modules: Number.parseInt(msTotalModules) || null,
-          estimated_completion: msEstimatedCompletion || null,
-        }),
-      })
-
-      if (response.ok) {
-        toast({
-          title: "Success",
-          description: "MS Learn progress added successfully!",
-        })
-        setMsCourseName("")
-        setMsDescription("")
-        setMsProgress("")
-        setMsStatus("")
-        setMsModulesCompleted("")
-        setMsTotalModules("")
-        setMsEstimatedCompletion("")
-      } else {
-        const errorData = await response.json()
-        throw new Error(errorData.error || "Save failed")
-      }
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: `Failed to add MS Learn progress: ${error.message}`,
-        variant: "destructive",
-      })
-    }
-    setLoading(false)
-  }
-
   const handleSaveProfilePicture = async () => {
     if (!profilePicFile || profilePicFile.length === 0) {
       toast({
@@ -565,167 +322,6 @@ export default function AdminPage() {
       toast({
         title: "Error",
         description: `Failed to update profile picture: ${error.message}`,
-        variant: "destructive",
-      })
-    }
-    setLoading(false)
-  }
-
-  const handleSaveResource = async () => {
-    if (!resourceTitle.trim() || !resourceUrl.trim()) {
-      toast({
-        title: "Error",
-        description: "Please provide title and URL",
-        variant: "destructive",
-      })
-      return
-    }
-
-    setLoading(true)
-    try {
-      const response = await fetch("/api/resources", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          title: resourceTitle,
-          description: resourceDescription,
-          url: resourceUrl,
-          category: resourceCategory || "Other",
-          is_free: resourceIsFree,
-        }),
-      })
-
-      if (response.ok) {
-        toast({
-          title: "Success",
-          description: "Resource added successfully!",
-        })
-        setResourceTitle("")
-        setResourceDescription("")
-        setResourceUrl("")
-        setResourceCategory("")
-        setResourceIsFree(true)
-        loadAllContent()
-      } else {
-        const errorData = await response.json()
-        throw new Error(errorData.error || "Save failed")
-      }
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: `Failed to add resource: ${error.message}`,
-        variant: "destructive",
-      })
-    }
-    setLoading(false)
-  }
-
-  const handleEditItem = (type, item) => {
-    setEditingItem({ type, id: item.id })
-    setEditForm(item)
-  }
-
-  const handleSaveEdit = async () => {
-    if (!editingItem) return
-
-    setLoading(true)
-    try {
-      const { type, id } = editingItem
-      let endpoint = ""
-
-      switch (type) {
-        case "blog":
-          endpoint = `/api/blog/${id}`
-          break
-        case "excel":
-          endpoint = `/api/portfolio/excel/${id}`
-          break
-        case "logo":
-          endpoint = `/api/portfolio/logos/${id}`
-          break
-        case "certificate":
-          endpoint = `/api/certificates/${id}`
-          break
-        case "mslearn":
-          endpoint = `/api/ms-learn/${id}`
-          break
-        case "resource":
-          endpoint = `/api/resources/${id}`
-          break
-      }
-
-      const response = await fetch(endpoint, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(editForm),
-      })
-
-      if (response.ok) {
-        toast({
-          title: "Success",
-          description: "Item updated successfully!",
-        })
-        setEditingItem(null)
-        setEditForm({})
-        loadAllContent()
-      } else {
-        throw new Error("Update failed")
-      }
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: `Failed to update: ${error.message}`,
-        variant: "destructive",
-      })
-    }
-    setLoading(false)
-  }
-
-  const handleDeleteItem = async (type, id) => {
-    if (!confirm("Are you sure you want to delete this item?")) return
-
-    setLoading(true)
-    try {
-      let endpoint = ""
-
-      switch (type) {
-        case "blog":
-          endpoint = `/api/blog/${id}`
-          break
-        case "excel":
-          endpoint = `/api/portfolio/excel/${id}`
-          break
-        case "logo":
-          endpoint = `/api/portfolio/logos/${id}`
-          break
-        case "certificate":
-          endpoint = `/api/certificates/${id}`
-          break
-        case "mslearn":
-          endpoint = `/api/ms-learn/${id}`
-          break
-        case "resource":
-          endpoint = `/api/resources/${id}`
-          break
-      }
-
-      const response = await fetch(endpoint, {
-        method: "DELETE",
-      })
-
-      if (response.ok) {
-        toast({
-          title: "Success",
-          description: "Item deleted successfully!",
-        })
-        loadAllContent()
-      } else {
-        throw new Error("Delete failed")
-      }
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: `Failed to delete: ${error.message}`,
         variant: "destructive",
       })
     }
@@ -784,19 +380,11 @@ export default function AdminPage() {
         </div>
 
         <Tabs defaultValue="about" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-12">
+          <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="about">About Me</TabsTrigger>
             <TabsTrigger value="hero">Hero Section</TabsTrigger>
             <TabsTrigger value="profile">Profile</TabsTrigger>
             <TabsTrigger value="blog">Blog</TabsTrigger>
-            <TabsTrigger value="portfolio">Portfolio</TabsTrigger>
-            <TabsTrigger value="certificates">Certificates</TabsTrigger>
-            <TabsTrigger value="mslearn">MS Learn</TabsTrigger>
-            <TabsTrigger value="resources">Resources</TabsTrigger>
-            <TabsTrigger value="stats">Statistics</TabsTrigger>
-            <TabsTrigger value="testimonials">Testimonials</TabsTrigger>
-            <TabsTrigger value="comments">Comments</TabsTrigger>
-            <TabsTrigger value="manage">Manage</TabsTrigger>
           </TabsList>
 
           <TabsContent value="about">
@@ -873,14 +461,6 @@ export default function AdminPage() {
                     required
                   />
                   <p className="text-sm text-gray-500">This appears as the detailed description below the subtitle</p>
-                </div>
-                <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                  <h4 className="font-semibold text-blue-900 mb-2">Preview:</h4>
-                  <div className="text-sm text-blue-800 space-y-2">
-                    <p><strong>Tagline:</strong> {heroTagline || "Technology Consultant & Microsoft Specialist"}</p>
-                    <p><strong>Subtitle:</strong> {heroSubtitle || "Delivering professional Microsoft solutions..."}</p>
-                    <p><strong>Description:</strong> {heroDescription ? heroDescription.substring(0, 100) + "..." : "Specializing in Excel development..."}</p>
-                  </div>
                 </div>
                 <Button onClick={handleSaveHeroContent} disabled={loading}>
                   {loading ? "Saving..." : "Save Hero Section"}
@@ -960,136 +540,8 @@ export default function AdminPage() {
               </CardContent>
             </Card>
           </TabsContent>
-
-          <TabsContent value="portfolio">
-            <div className="grid md:grid-cols-2 gap-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Add Excel Project</CardTitle>
-                  <CardDescription>Upload Excel files for portfolio</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="excel-title">Project Title *</Label>
-                    <Input
-                      id="excel-title"
-                      value={excelTitle}
-                      onChange={(e) => setExcelTitle(e.target.value)}
-                      placeholder="Project title"
-                      required
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="excel-description">Description</Label>
-                    <Textarea
-                      id="excel-description"
-                      value={excelDescription}
-                      onChange={(e) => setExcelDescription(e.target.value)}
-                      placeholder="Project description"
-                      rows={3}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="excel-file">Excel File *</Label>
-                    <Input
-                      id="excel-file"
-                      type="file"
-                      accept=".xlsx,.xls"
-                      onChange={(e) => setExcelFile(e.target.files)}
-                      required
-                    />
-                  </div>
-                  <Button onClick={handleSaveExcelProject} disabled={loading} className="w-full">
-                    <Upload className="w-4 h-4 mr-2" />
-                    {loading ? "Adding..." : "Add Excel Project"}
-                  </Button>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle>Add Logo Design</CardTitle>
-                  <CardDescription>Upload logo images</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="logo-title">Logo Title *</Label>
-                    <Input
-                      id="logo-title"
-                      value={logoTitle}
-                      onChange={(e) => setLogoTitle(e.target.value)}
-                      placeholder="Logo title"
-                      required
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="logo-description">Description</Label>
-                    <Textarea
-                      id="logo-description"
-                      value={logoDescription}
-                      onChange={(e) => setLogoDescription(e.target.value)}
-                      placeholder="Logo description"
-                      rows={3}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="logo-file">Logo Image *</Label>
-                    <Input
-                      id="logo-file"
-                      type="file"
-                      accept=".jpg,.jpeg,.png,.gif,.svg,.webp"
-                      onChange={(e) => setLogoFile(e.target.files)}
-                      required
-                    />
-                  </div>
-                  <Button onClick={handleSaveLogoDesign} disabled={loading} className="w-full">
-                    <ImageIcon className="w-4 h-4 mr-2" />
-                    {loading ? "Adding..." : "Add Logo Design"}
-                  </Button>
-                </CardContent>
-              </Card>
-            </div>
-          </TabsContent>
-
-          <TabsContent value="certificates">
-            <Card>
-              <CardHeader>
-                <CardTitle>Add Certificate</CardTitle>
-                <CardDescription>Upload certificate PDFs</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="cert-title">Certificate Title *</Label>
-                  <Input
-                    id="cert-title"
-                    value={certTitle}
-                    onChange={(e) => setCertTitle(e.target.value)}
-                    placeholder="Certificate title"
-                    required
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="cert-issuer">Issuing Organization</Label>
-                  <Input
-                    id="cert-issuer"
-                    value={certIssuer}
-                    onChange={(e) => setCertIssuer(e.target.value)}
-                    placeholder="Issuing organization"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="cert-date">Date Earned</Label>
-                  <Input id="cert-date" type="date" value={certDate} onChange={(e) => setCertDate(e.target.value)} />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="cert-description">Description</Label>
-                  <Textarea
-                    id="cert-description"
-                    value={certDescription}
-                    onChange={(e) => setCertDescription(e.target.value)}
-                    placeholder="Certificate description"
-                    rows={3}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label\
+        </Tabs>
+      </div>
+    </div>
+  )
+}
