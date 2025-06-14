@@ -14,6 +14,9 @@ import {
 } from "lucide-react"
 import { neon } from "@neondatabase/serverless"
 import { Navigation } from "@/components/navigation"
+import { Testimonials } from "@/components/testimonials"
+import { Stats } from "@/components/stats"
+import { CTASection } from "@/components/cta-section"
 import type { Metadata } from "next"
 
 // Force this page to be dynamic and never cached
@@ -22,9 +25,26 @@ export const revalidate = 0
 export const fetchCache = "force-no-store"
 
 export const metadata: Metadata = {
-  title: "Home",
+  title: "Max Dorman - Microsoft Fundamentals Student & Technology Consultant",
   description:
-    "Welcome to Max Dorman's personal website. Explore my Microsoft learning journey, portfolio projects, and professional development.",
+    "Professional Microsoft Office solutions, Excel development, and logo design services from Fife, Scotland. Specializing in technology consulting and digital solutions.",
+  keywords: [
+    "Max Dorman",
+    "Microsoft Office",
+    "Excel Development",
+    "Logo Design",
+    "Technology Consulting",
+    "Scotland",
+    "Fife",
+    "Microsoft Fundamentals",
+    "Digital Solutions",
+  ],
+  openGraph: {
+    title: "Max Dorman - Technology Consultant & Microsoft Specialist",
+    description: "Professional Microsoft Office solutions, Excel development, and logo design services from Scotland.",
+    type: "website",
+    locale: "en_GB",
+  },
 }
 
 const sql = neon(process.env.DATABASE_URL!)
@@ -63,10 +83,53 @@ async function getProfilePicture() {
   }
 }
 
+async function getHeroContent() {
+  try {
+    // Create table if it doesn't exist
+    await sql`
+      CREATE TABLE IF NOT EXISTS hero_content (
+        id SERIAL PRIMARY KEY,
+        tagline VARCHAR(255) DEFAULT 'Technology Consultant & Microsoft Specialist',
+        subtitle TEXT DEFAULT 'Delivering professional Microsoft solutions and digital services from Fife, Scotland',
+        description TEXT DEFAULT 'Specializing in Excel development, logo design, and Microsoft Office consulting to help businesses streamline their operations and achieve their goals.',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `
+
+    let result = await sql`SELECT * FROM hero_content ORDER BY updated_at DESC LIMIT 1`
+
+    if (result.length === 0) {
+      // Insert default content if none exists
+      result = await sql`
+        INSERT INTO hero_content (tagline, subtitle, description) 
+        VALUES (
+          'Technology Consultant & Microsoft Specialist',
+          'Delivering professional Microsoft solutions and digital services from Fife, Scotland',
+          'Specializing in Excel development, logo design, and Microsoft Office consulting to help businesses streamline their operations and achieve their goals.'
+        )
+        RETURNING *
+      `
+    }
+
+    return result[0]
+  } catch (error) {
+    console.error("Hero content fetch error:", error)
+    // Return default content if database fails
+    return {
+      tagline: "Technology Consultant & Microsoft Specialist",
+      subtitle: "Delivering professional Microsoft solutions and digital services from Fife, Scotland",
+      description:
+        "Specializing in Excel development, logo design, and Microsoft Office consulting to help businesses streamline their operations and achieve their goals.",
+    }
+  }
+}
+
 export default async function HomePage() {
   // Fetch directly from database to bypass any caching
   const aboutMe = await getAboutMeDirect()
   const profilePic = await getProfilePicture()
+  const heroContent = await getHeroContent()
 
   return (
     <div className="min-h-screen bg-background">
@@ -110,7 +173,7 @@ export default async function HomePage() {
                   <div className="relative inline-block">
                     <img
                       src={profilePic.image_url || "/placeholder.svg"}
-                      alt="Max Dorman"
+                      alt="Max Dorman - Technology Consultant"
                       className="w-40 h-40 rounded-full mx-auto object-cover border-4 border-primary/50 shadow-[0_0_30px_rgba(0,212,255,0.4),0_0_50px_rgba(255,20,147,0.3)] animate-rainbow-border"
                     />
                     <div className="absolute inset-0 rounded-full bg-gradient-to-r from-primary/20 via-neon-pink/20 to-neon-cyan/20 animate-pulse"></div>
@@ -122,15 +185,16 @@ export default async function HomePage() {
                 )}
               </div>
 
-              <h2 className="text-6xl font-bold mb-6 hero-title">Welcome to My Digital Space</h2>
+              <h1 className="text-6xl font-bold mb-6 hero-title">Max Dorman</h1>
+              <h2 className="text-2xl font-semibold mb-4 text-neon-pink">{heroContent.tagline}</h2>
               <div className="flex items-center justify-center mb-6">
                 <Zap className="w-6 h-6 text-primary mr-2 animate-pulse" />
-                <p className="text-xl text-muted-foreground">
-                  Exploring Microsoft technologies and building digital solutions from the heart of
-                  <span className="text-neon-pink font-semibold ml-1">Scotland</span>
-                </p>
+                <p className="text-xl text-muted-foreground">{heroContent.subtitle}</p>
                 <Star className="w-6 h-6 text-neon-pink ml-2 animate-pulse" />
               </div>
+
+              {/* Professional Tagline */}
+              <p className="text-lg text-muted-foreground max-w-3xl mx-auto mb-8">{heroContent.description}</p>
             </div>
 
             <div className="section-divider"></div>
@@ -151,12 +215,17 @@ export default async function HomePage() {
                   ) : (
                     <div className="text-muted-foreground">
                       <p>
-                        I'm <span className="text-neon-pink font-semibold">Max Dorman</span>, currently diving deep into
-                        Microsoft fundamentals and expanding my technical expertise. Based in beautiful{" "}
-                        <span className="text-neon-cyan">Fife, Scotland</span>, I'm passionate about technology and
-                        helping others through my skills. Whether it's learning new Microsoft technologies or working on
-                        exciting projects, I'm always ready for the next{" "}
-                        <span className="text-neon-pink">challenge</span>.
+                        I'm <span className="text-neon-pink font-semibold">Max Dorman</span>, a dedicated technology
+                        consultant currently advancing my expertise in Microsoft fundamentals. Based in beautiful{" "}
+                        <span className="text-neon-cyan">Fife, Scotland</span>, I'm passionate about helping businesses
+                        and individuals leverage technology to achieve their goals.
+                      </p>
+                      <p className="mt-4">
+                        With a focus on <span className="text-neon-pink">practical solutions</span> and{" "}
+                        <span className="text-neon-cyan">professional service</span>, I specialize in creating custom
+                        Excel applications, designing memorable logos, and providing comprehensive Microsoft Office
+                        consulting. Whether you're a small business looking to streamline operations or an individual
+                        seeking to enhance your digital presence, I'm here to help you succeed.
                       </p>
                     </div>
                   )}
@@ -165,7 +234,9 @@ export default async function HomePage() {
                 <div className="mt-4 text-xs text-primary/60 border-t border-gradient-to-r from-primary/20 via-neon-pink/20 to-primary/20 pt-2">
                   <span className="text-neon-cyan">SYSTEM:</span> Last updated:{" "}
                   {aboutMe?.updated_at ? new Date(aboutMe.updated_at).toLocaleString() : "Never"} |{" "}
-                  <span className="text-neon-pink">PROFILE:</span> {profilePic ? "Loaded" : "Default"}
+                  <span className="text-neon-pink">PROFILE:</span> {profilePic ? "Loaded" : "Default"} |{" "}
+                  <span className="text-neon-cyan">HERO:</span>{" "}
+                  {heroContent?.updated_at ? new Date(heroContent.updated_at).toLocaleString() : "Default"}
                 </div>
               </CardContent>
             </Card>
@@ -173,7 +244,7 @@ export default async function HomePage() {
             <div className="section-divider"></div>
 
             {/* Quick Links Grid with Star Accents */}
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8 mb-16">
               <Link href="/blog" className="group">
                 <Card className="cyber-card hover:scale-105 transition-all duration-300 group-hover:pink-glow">
                   <CardHeader>
@@ -184,8 +255,8 @@ export default async function HomePage() {
                       Blog
                     </CardTitle>
                     <CardDescription className="text-muted-foreground">
-                      Read my latest thoughts on <span className="text-neon-pink">technology</span>, learning, and
-                      development
+                      Read my latest insights on <span className="text-neon-pink">technology</span>, learning, and
+                      professional development
                     </CardDescription>
                   </CardHeader>
                 </Card>
@@ -201,7 +272,8 @@ export default async function HomePage() {
                       Portfolio
                     </CardTitle>
                     <CardDescription className="text-muted-foreground">
-                      Explore my work including <span className="text-neon-pink">Excel projects</span> and logo designs
+                      Explore my professional work including <span className="text-neon-pink">Excel solutions</span> and
+                      creative designs
                     </CardDescription>
                   </CardHeader>
                 </Card>
@@ -217,7 +289,8 @@ export default async function HomePage() {
                       Certificates
                     </CardTitle>
                     <CardDescription className="text-muted-foreground">
-                      View my <span className="text-neon-pink">professional certifications</span> and achievements
+                      View my <span className="text-neon-pink">professional certifications</span> and continuous
+                      learning achievements
                     </CardDescription>
                   </CardHeader>
                 </Card>
@@ -233,7 +306,7 @@ export default async function HomePage() {
                       MS Learn Progress
                     </CardTitle>
                     <CardDescription className="text-muted-foreground">
-                      Track my <span className="text-neon-pink">Microsoft learning</span> journey and progress
+                      Track my <span className="text-neon-pink">Microsoft learning</span> journey and skill development
                     </CardDescription>
                   </CardHeader>
                 </Card>
@@ -265,34 +338,71 @@ export default async function HomePage() {
                       Contact Me
                     </CardTitle>
                     <CardDescription className="text-muted-foreground">
-                      Get in touch for <span className="text-neon-pink">collaborations</span> or inquiries
+                      Get in touch for <span className="text-neon-pink">professional consultations</span> and project
+                      inquiries
                     </CardDescription>
                   </CardHeader>
                 </Card>
               </Link>
             </div>
+
+            {/* Stats Section - Hidden by default, can be shown later */}
+            <Stats showStats={false} />
+
+            {/* Testimonials Section - Hidden by default, can be shown later */}
+            <Testimonials showTestimonials={false} />
+
+            {/* Call to Action Section */}
+            <CTASection />
           </main>
         </div>
       </div>
 
-      {/* Footer with Star Accents */}
-      <footer className="bg-background/80 backdrop-blur-sm border-t border-primary/20 text-muted-foreground py-8 mt-16">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <div className="section-divider mb-4"></div>
-          <p className="mb-4 text-primary/80 flex items-center justify-center">
-            © 2024 <span className="text-neon-pink mx-2">Max Dorman</span>. All rights reserved.
-            <Star className="w-4 h-4 text-neon-pink ml-2 animate-pulse" />
-          </p>
-          <p className="flex items-center justify-center">
-            Contact:{" "}
-            <a
-              href="mailto:maxd@ittechs.io"
-              className="text-neon-pink hover:text-primary transition-colors hover:text-glow mx-2"
-            >
-              maxd@ittechs.io
-            </a>
-            <Sparkles className="w-4 h-4 text-neon-cyan animate-pulse" />
-          </p>
+      {/* Enhanced Footer */}
+      <footer className="bg-background/80 backdrop-blur-sm border-t border-primary/20 text-muted-foreground py-12 mt-16">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="section-divider mb-8"></div>
+
+          <div className="grid md:grid-cols-3 gap-8 mb-8">
+            <div>
+              <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center">
+                <Zap className="w-5 h-5 mr-2 text-primary" />
+                Max Dorman
+              </h3>
+              <p className="text-sm text-muted-foreground">
+                Professional Microsoft solutions and technology consulting from Scotland.
+              </p>
+            </div>
+
+            <div>
+              <h4 className="text-sm font-semibold text-foreground mb-4">Services</h4>
+              <ul className="space-y-2 text-sm text-muted-foreground">
+                <li>• Excel Development</li>
+                <li>• Logo Design</li>
+                <li>• Microsoft Office Consulting</li>
+                <li>• Technology Solutions</li>
+              </ul>
+            </div>
+
+            <div>
+              <h4 className="text-sm font-semibold text-foreground mb-4">Connect</h4>
+              <div className="space-y-2 text-sm">
+                <p>
+                  <a href="mailto:maxd@ittechs.io" className="text-neon-pink hover:text-primary transition-colors">
+                    maxd@ittechs.io
+                  </a>
+                </p>
+                <p className="text-muted-foreground">Fife, Scotland</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="text-center pt-8 border-t border-primary/20">
+            <p className="text-primary/80 flex items-center justify-center">
+              © 2024 <span className="text-neon-pink mx-2">Max Dorman</span>. All rights reserved.
+              <Star className="w-4 h-4 text-neon-pink ml-2 animate-pulse" />
+            </p>
+          </div>
         </div>
       </footer>
     </div>

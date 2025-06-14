@@ -1,0 +1,21 @@
+{
+  "name": "Max Dorman - Technology Consultant",
+  "short_name": "Max Dorman",
+  "description": "Professional Microsoft solutions, Excel development, and logo design services from Fife, Scotland",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#00d4ff",
+  "icons": [
+    {
+      "src": "/favicon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/favicon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

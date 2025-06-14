@@ -9,9 +9,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Checkbox } from "@/components/ui/checkbox"
-import { Upload, Eye, EyeOff, FileText, ImageIcon, BookOpen, ExternalLink } from "lucide-react"
+import { Upload, Eye, EyeOff, ImageIcon, Zap } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 
 export default function AdminPage() {
@@ -26,6 +24,11 @@ export default function AdminPage() {
   const [blogTitle, setBlogTitle] = useState("")
   const [blogContent, setBlogContent] = useState("")
   const [blogFiles, setBlogFiles] = useState<FileList | null>(null)
+
+  // Hero content states
+  const [heroTagline, setHeroTagline] = useState("")
+  const [heroSubtitle, setHeroSubtitle] = useState("")
+  const [heroDescription, setHeroDescription] = useState("")
 
   // Portfolio states
   const [excelTitle, setExcelTitle] = useState("")
@@ -73,10 +76,11 @@ export default function AdminPage() {
   const [editingItem, setEditingItem] = useState(null)
   const [editForm, setEditForm] = useState({})
 
-  // Load existing about me content when authenticated
+  // Load existing content when authenticated
   useEffect(() => {
     if (isAuthenticated) {
       loadAboutMe()
+      loadHeroContent()
       loadAllContent()
     }
   }, [isAuthenticated])
@@ -94,6 +98,22 @@ export default function AdminPage() {
       }
     } catch (error) {
       console.error("Failed to load about me:", error)
+    }
+  }
+
+  const loadHeroContent = async () => {
+    try {
+      const response = await fetch("/api/hero-content", {
+        method: "GET",
+      })
+      if (response.ok) {
+        const data = await response.json()
+        setHeroTagline(data.tagline || "")
+        setHeroSubtitle(data.subtitle || "")
+        setHeroDescription(data.description || "")
+      }
+    } catch (error) {
+      console.error("Failed to load hero content:", error)
     }
   }
 
@@ -191,6 +211,47 @@ export default function AdminPage() {
       toast({
         title: "Error",
         description: `Failed to update about me section: ${error.message}`,
+        variant: "destructive",
+      })
+    }
+    setLoading(false)
+  }
+
+  const handleSaveHeroContent = async () => {
+    if (!heroTagline.trim() || !heroSubtitle.trim() || !heroDescription.trim()) {
+      toast({
+        title: "Error",
+        description: "Please fill in all hero content fields",
+        variant: "destructive",
+      })
+      return
+    }
+
+    setLoading(true)
+    try {
+      const response = await fetch("/api/hero-content", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          tagline: heroTagline,
+          subtitle: heroSubtitle,
+          description: heroDescription,
+        }),
+      })
+
+      if (response.ok) {
+        toast({
+          title: "Success",
+          description: "Hero section updated successfully!",
+        })
+      } else {
+        const errorData = await response.json()
+        throw new Error(errorData.error || "Save failed")
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: `Failed to update hero section: ${error.message}`,
         variant: "destructive",
       })
     }
@@ -723,14 +784,17 @@ export default function AdminPage() {
         </div>
 
         <Tabs defaultValue="about" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-9">
+          <TabsList className="grid w-full grid-cols-12">
             <TabsTrigger value="about">About Me</TabsTrigger>
+            <TabsTrigger value="hero">Hero Section</TabsTrigger>
             <TabsTrigger value="profile">Profile</TabsTrigger>
             <TabsTrigger value="blog">Blog</TabsTrigger>
             <TabsTrigger value="portfolio">Portfolio</TabsTrigger>
             <TabsTrigger value="certificates">Certificates</TabsTrigger>
             <TabsTrigger value="mslearn">MS Learn</TabsTrigger>
             <TabsTrigger value="resources">Resources</TabsTrigger>
+            <TabsTrigger value="stats">Statistics</TabsTrigger>
+            <TabsTrigger value="testimonials">Testimonials</TabsTrigger>
             <TabsTrigger value="comments">Comments</TabsTrigger>
             <TabsTrigger value="manage">Manage</TabsTrigger>
           </TabsList>
@@ -760,6 +824,66 @@ export default function AdminPage() {
                 </div>
                 <Button onClick={handleSaveAboutMe} disabled={loading}>
                   {loading ? "Saving..." : "Save About Me"}
+                </Button>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="hero">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <Zap className="w-6 h-6 mr-2" />
+                  Hero Section
+                </CardTitle>
+                <CardDescription>Edit the main tagline, subtitle, and description on the homepage</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="hero-tagline">Tagline *</Label>
+                  <Input
+                    id="hero-tagline"
+                    value={heroTagline}
+                    onChange={(e) => setHeroTagline(e.target.value)}
+                    placeholder="e.g., Technology Consultant & Microsoft Specialist"
+                    required
+                  />
+                  <p className="text-sm text-gray-500">This appears as the main subtitle under your name</p>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="hero-subtitle">Subtitle *</Label>
+                  <Textarea
+                    id="hero-subtitle"
+                    value={heroSubtitle}
+                    onChange={(e) => setHeroSubtitle(e.target.value)}
+                    placeholder="e.g., Delivering professional Microsoft solutions and digital services from Fife, Scotland"
+                    rows={3}
+                    required
+                  />
+                  <p className="text-sm text-gray-500">This appears with the lightning bolt icon</p>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="hero-description">Professional Description *</Label>
+                  <Textarea
+                    id="hero-description"
+                    value={heroDescription}
+                    onChange={(e) => setHeroDescription(e.target.value)}
+                    placeholder="e.g., Specializing in Excel development, logo design, and Microsoft Office consulting to help businesses streamline their operations and achieve their goals."
+                    rows={4}
+                    required
+                  />
+                  <p className="text-sm text-gray-500">This appears as the detailed description below the subtitle</p>
+                </div>
+                <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                  <h4 className="font-semibold text-blue-900 mb-2">Preview:</h4>
+                  <div className="text-sm text-blue-800 space-y-2">
+                    <p><strong>Tagline:</strong> {heroTagline || "Technology Consultant & Microsoft Specialist"}</p>
+                    <p><strong>Subtitle:</strong> {heroSubtitle || "Delivering professional Microsoft solutions..."}</p>
+                    <p><strong>Description:</strong> {heroDescription ? heroDescription.substring(0, 100) + "..." : "Specializing in Excel development..."}</p>
+                  </div>
+                </div>
+                <Button onClick={handleSaveHeroContent} disabled={loading}>
+                  {loading ? "Saving..." : "Save Hero Section"}
                 </Button>
               </CardContent>
             </Card>
@@ -968,635 +1092,4 @@ export default function AdminPage() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="cert-file">Certificate PDF *</Label>
-                  <Input
-                    id="cert-file"
-                    type="file"
-                    accept=".pdf"
-                    onChange={(e) => setCertFile(e.target.files)}
-                    required
-                  />
-                </div>
-                <Button onClick={handleSaveCertificate} disabled={loading} className="w-full">
-                  <FileText className="w-4 h-4 mr-2" />
-                  {loading ? "Adding..." : "Add Certificate"}
-                </Button>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="mslearn">
-            <Card>
-              <CardHeader>
-                <CardTitle>Add/Update MS Learn Progress</CardTitle>
-                <CardDescription>Track your Microsoft learning progress</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="ms-course-name">Course Name *</Label>
-                  <Input
-                    id="ms-course-name"
-                    value={msCourseName}
-                    onChange={(e) => setMsCourseName(e.target.value)}
-                    placeholder="e.g., Microsoft Azure Fundamentals (AZ-900)"
-                    required
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="ms-description">Course Description</Label>
-                  <Textarea
-                    id="ms-description"
-                    value={msDescription}
-                    onChange={(e) => setMsDescription(e.target.value)}
-                    placeholder="Brief description of the course"
-                    rows={3}
-                  />
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="ms-progress">Progress Percentage</Label>
-                    <Input
-                      id="ms-progress"
-                      type="number"
-                      min="0"
-                      max="100"
-                      value={msProgress}
-                      onChange={(e) => setMsProgress(e.target.value)}
-                      placeholder="0-100"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="ms-status">Status</Label>
-                    <Select value={msStatus} onValueChange={setMsStatus}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select status" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="not_started">Not Started</SelectItem>
-                        <SelectItem value="in_progress">In Progress</SelectItem>
-                        <SelectItem value="completed">Completed</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="ms-modules-completed">Modules Completed</Label>
-                    <Input
-                      id="ms-modules-completed"
-                      type="number"
-                      min="0"
-                      value={msModulesCompleted}
-                      onChange={(e) => setMsModulesCompleted(e.target.value)}
-                      placeholder="0"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="ms-total-modules">Total Modules</Label>
-                    <Input
-                      id="ms-total-modules"
-                      type="number"
-                      min="0"
-                      value={msTotalModules}
-                      onChange={(e) => setMsTotalModules(e.target.value)}
-                      placeholder="Total number of modules"
-                    />
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="ms-estimated-completion">Estimated Completion Date</Label>
-                  <Input
-                    id="ms-estimated-completion"
-                    type="date"
-                    value={msEstimatedCompletion}
-                    onChange={(e) => setMsEstimatedCompletion(e.target.value)}
-                  />
-                </div>
-                <Button onClick={handleSaveMSLearnProgress} disabled={loading} className="w-full">
-                  <BookOpen className="w-4 h-4 mr-2" />
-                  {loading ? "Adding..." : "Add/Update Progress"}
-                </Button>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="resources">
-            <Card>
-              <CardHeader>
-                <CardTitle>Add Resource</CardTitle>
-                <CardDescription>Add useful resources, tools, and learning materials</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="resource-title">Title *</Label>
-                  <Input
-                    id="resource-title"
-                    value={resourceTitle}
-                    onChange={(e) => setResourceTitle(e.target.value)}
-                    placeholder="Resource title"
-                    required
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="resource-description">Description</Label>
-                  <Textarea
-                    id="resource-description"
-                    value={resourceDescription}
-                    onChange={(e) => setResourceDescription(e.target.value)}
-                    placeholder="Brief description of the resource"
-                    rows={3}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="resource-url">URL *</Label>
-                  <Input
-                    id="resource-url"
-                    type="url"
-                    value={resourceUrl}
-                    onChange={(e) => setResourceUrl(e.target.value)}
-                    placeholder="https://example.com"
-                    required
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="resource-category">Category</Label>
-                  <Select value={resourceCategory} onValueChange={setResourceCategory}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select category" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Learning">Learning</SelectItem>
-                      <SelectItem value="Tools">Tools</SelectItem>
-                      <SelectItem value="Documentation">Documentation</SelectItem>
-                      <SelectItem value="Videos">Videos</SelectItem>
-                      <SelectItem value="Websites">Websites</SelectItem>
-                      <SelectItem value="Other">Other</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="resource-free"
-                    checked={resourceIsFree}
-                    onCheckedChange={(checked) => setResourceIsFree(checked === true)}
-                  />
-                  <Label htmlFor="resource-free">This resource is free</Label>
-                </div>
-                <Button onClick={handleSaveResource} disabled={loading} className="w-full">
-                  <ExternalLink className="w-4 h-4 mr-2" />
-                  {loading ? "Adding..." : "Add Resource"}
-                </Button>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="comments">
-            <Card>
-              <CardHeader>
-                <CardTitle>Comment Management</CardTitle>
-                <CardDescription>Approve or delete blog comments</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <p className="text-muted-foreground">
-                  Comment management features will be implemented here. You'll be able to approve, edit, and delete
-                  comments from blog posts.
-                </p>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="manage">
-            <div className="space-y-6">
-              {editingItem && (
-                <Card className="border-blue-200 bg-blue-50">
-                  <CardHeader>
-                    <CardTitle>
-                      Edit{" "}
-                      {editingItem.type === "blog"
-                        ? "Blog Post"
-                        : editingItem.type === "excel"
-                          ? "Excel Project"
-                          : editingItem.type === "logo"
-                            ? "Logo Design"
-                            : editingItem.type === "certificate"
-                              ? "Certificate"
-                              : editingItem.type === "resource"
-                                ? "Resource"
-                                : "MS Learn Progress"}
-                    </CardTitle>
-                    <CardDescription>Make your changes and save</CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    {editingItem.type === "blog" && (
-                      <>
-                        <div className="space-y-2">
-                          <Label>Title</Label>
-                          <Input
-                            value={editForm.title || ""}
-                            onChange={(e) => setEditForm({ ...editForm, title: e.target.value })}
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label>Content</Label>
-                          <Textarea
-                            value={editForm.content || ""}
-                            onChange={(e) => setEditForm({ ...editForm, content: e.target.value })}
-                            rows={8}
-                          />
-                        </div>
-                      </>
-                    )}
-
-                    {(editingItem.type === "excel" || editingItem.type === "logo") && (
-                      <>
-                        <div className="space-y-2">
-                          <Label>Title</Label>
-                          <Input
-                            value={editForm.title || ""}
-                            onChange={(e) => setEditForm({ ...editForm, title: e.target.value })}
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label>Description</Label>
-                          <Textarea
-                            value={editForm.description || ""}
-                            onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
-                            rows={3}
-                          />
-                        </div>
-                      </>
-                    )}
-
-                    {editingItem.type === "certificate" && (
-                      <>
-                        <div className="space-y-2">
-                          <Label>Title</Label>
-                          <Input
-                            value={editForm.title || ""}
-                            onChange={(e) => setEditForm({ ...editForm, title: e.target.value })}
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label>Issuer</Label>
-                          <Input
-                            value={editForm.issuer || ""}
-                            onChange={(e) => setEditForm({ ...editForm, issuer: e.target.value })}
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label>Date Earned</Label>
-                          <Input
-                            type="date"
-                            value={editForm.date_earned || ""}
-                            onChange={(e) => setEditForm({ ...editForm, date_earned: e.target.value })}
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label>Description</Label>
-                          <Textarea
-                            value={editForm.description || ""}
-                            onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
-                            rows={3}
-                          />
-                        </div>
-                      </>
-                    )}
-
-                    {editingItem.type === "mslearn" && (
-                      <>
-                        <div className="space-y-2">
-                          <Label>Course Name</Label>
-                          <Input
-                            value={editForm.course_name || ""}
-                            onChange={(e) => setEditForm({ ...editForm, course_name: e.target.value })}
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label>Description</Label>
-                          <Textarea
-                            value={editForm.description || ""}
-                            onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
-                            rows={3}
-                          />
-                        </div>
-                        <div className="grid grid-cols-2 gap-4">
-                          <div className="space-y-2">
-                            <Label>Progress %</Label>
-                            <Input
-                              type="number"
-                              min="0"
-                              max="100"
-                              value={editForm.progress_percentage || ""}
-                              onChange={(e) => setEditForm({ ...editForm, progress_percentage: e.target.value })}
-                            />
-                          </div>
-                          <div className="space-y-2">
-                            <Label>Status</Label>
-                            <Select
-                              value={editForm.status || ""}
-                              onValueChange={(value) => setEditForm({ ...editForm, status: value })}
-                            >
-                              <SelectTrigger>
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="not_started">Not Started</SelectItem>
-                                <SelectItem value="in_progress">In Progress</SelectItem>
-                                <SelectItem value="completed">Completed</SelectItem>
-                              </SelectContent>
-                            </Select>
-                          </div>
-                        </div>
-                      </>
-                    )}
-
-                    {editingItem.type === "resource" && (
-                      <>
-                        <div className="space-y-2">
-                          <Label>Title</Label>
-                          <Input
-                            value={editForm.title || ""}
-                            onChange={(e) => setEditForm({ ...editForm, title: e.target.value })}
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label>Description</Label>
-                          <Textarea
-                            value={editForm.description || ""}
-                            onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
-                            rows={3}
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label>URL</Label>
-                          <Input
-                            type="url"
-                            value={editForm.url || ""}
-                            onChange={(e) => setEditForm({ ...editForm, url: e.target.value })}
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label>Category</Label>
-                          <Select
-                            value={editForm.category || ""}
-                            onValueChange={(value) => setEditForm({ ...editForm, category: value })}
-                          >
-                            <SelectTrigger>
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="Learning">Learning</SelectItem>
-                              <SelectItem value="Tools">Tools</SelectItem>
-                              <SelectItem value="Documentation">Documentation</SelectItem>
-                              <SelectItem value="Videos">Videos</SelectItem>
-                              <SelectItem value="Websites">Websites</SelectItem>
-                              <SelectItem value="Other">Other</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <Checkbox
-                            checked={editForm.is_free || false}
-                            onCheckedChange={(checked) => setEditForm({ ...editForm, is_free: checked === true })}
-                          />
-                          <Label>This resource is free</Label>
-                        </div>
-                      </>
-                    )}
-
-                    <div className="flex gap-2">
-                      <Button onClick={handleSaveEdit} disabled={loading}>
-                        {loading ? "Saving..." : "Save Changes"}
-                      </Button>
-                      <Button
-                        variant="outline"
-                        onClick={() => {
-                          setEditingItem(null)
-                          setEditForm({})
-                        }}
-                      >
-                        Cancel
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
-
-              {/* Blog Posts Management */}
-              <Card>
-                <CardHeader>
-                  <CardTitle>Blog Posts ({allContent.blogPosts.length})</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-2">
-                    {allContent.blogPosts.map((post) => (
-                      <div key={post.id} className="flex items-center justify-between p-3 border rounded">
-                        <div>
-                          <h4 className="font-medium">{post.title}</h4>
-                          <p className="text-sm text-gray-500">
-                            Created: {new Date(post.created_at).toLocaleDateString()} •
-                            {post.attachment_count > 0 && ` ${post.attachment_count} attachments`}
-                          </p>
-                        </div>
-                        <div className="flex gap-2">
-                          <Button size="sm" variant="outline" onClick={() => handleEditItem("blog", post)}>
-                            Edit
-                          </Button>
-                          <Button size="sm" variant="destructive" onClick={() => handleDeleteItem("blog", post.id)}>
-                            Delete
-                          </Button>
-                        </div>
-                      </div>
-                    ))}
-                    {allContent.blogPosts.length === 0 && (
-                      <p className="text-gray-500 text-center py-4">No blog posts yet</p>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Excel Projects Management */}
-              <Card>
-                <CardHeader>
-                  <CardTitle>Excel Projects ({allContent.excelProjects.length})</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-2">
-                    {allContent.excelProjects.map((project) => (
-                      <div key={project.id} className="flex items-center justify-between p-3 border rounded">
-                        <div>
-                          <h4 className="font-medium">{project.title}</h4>
-                          <p className="text-sm text-gray-500">
-                            {project.description && `${project.description.substring(0, 100)}... • `}
-                            Created: {new Date(project.created_at).toLocaleDateString()}
-                          </p>
-                        </div>
-                        <div className="flex gap-2">
-                          <Button size="sm" variant="outline" onClick={() => handleEditItem("excel", project)}>
-                            Edit
-                          </Button>
-                          <Button size="sm" variant="destructive" onClick={() => handleDeleteItem("excel", project.id)}>
-                            Delete
-                          </Button>
-                        </div>
-                      </div>
-                    ))}
-                    {allContent.excelProjects.length === 0 && (
-                      <p className="text-gray-500 text-center py-4">No Excel projects yet</p>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Logo Designs Management */}
-              <Card>
-                <CardHeader>
-                  <CardTitle>Logo Designs ({allContent.logoDesigns.length})</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-2">
-                    {allContent.logoDesigns.map((logo) => (
-                      <div key={logo.id} className="flex items-center justify-between p-3 border rounded">
-                        <div>
-                          <h4 className="font-medium">{logo.title}</h4>
-                          <p className="text-sm text-gray-500">
-                            {logo.description && `${logo.description.substring(0, 100)}... • `}
-                            Created: {new Date(logo.created_at).toLocaleDateString()}
-                          </p>
-                        </div>
-                        <div className="flex gap-2">
-                          <Button size="sm" variant="outline" onClick={() => handleEditItem("logo", logo)}>
-                            Edit
-                          </Button>
-                          <Button size="sm" variant="destructive" onClick={() => handleDeleteItem("logo", logo.id)}>
-                            Delete
-                          </Button>
-                        </div>
-                      </div>
-                    ))}
-                    {allContent.logoDesigns.length === 0 && (
-                      <p className="text-gray-500 text-center py-4">No logo designs yet</p>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Certificates Management */}
-              <Card>
-                <CardHeader>
-                  <CardTitle>Certificates ({allContent.certificates.length})</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-2">
-                    {allContent.certificates.map((cert) => (
-                      <div key={cert.id} className="flex items-center justify-between p-3 border rounded">
-                        <div>
-                          <h4 className="font-medium">{cert.title}</h4>
-                          <p className="text-sm text-gray-500">
-                            {cert.issuer && `${cert.issuer} • `}
-                            {cert.date_earned && `Earned: ${new Date(cert.date_earned).toLocaleDateString()} • `}
-                            Added: {new Date(cert.created_at).toLocaleDateString()}
-                          </p>
-                        </div>
-                        <div className="flex gap-2">
-                          <Button size="sm" variant="outline" onClick={() => handleEditItem("certificate", cert)}>
-                            Edit
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="destructive"
-                            onClick={() => handleDeleteItem("certificate", cert.id)}
-                          >
-                            Delete
-                          </Button>
-                        </div>
-                      </div>
-                    ))}
-                    {allContent.certificates.length === 0 && (
-                      <p className="text-gray-500 text-center py-4">No certificates yet</p>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* MS Learn Progress Management */}
-              <Card>
-                <CardHeader>
-                  <CardTitle>MS Learn Progress ({allContent.msLearnProgress.length})</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-2">
-                    {allContent.msLearnProgress.map((progress) => (
-                      <div key={progress.id} className="flex items-center justify-between p-3 border rounded">
-                        <div>
-                          <h4 className="font-medium">{progress.course_name}</h4>
-                          <p className="text-sm text-gray-500">
-                            {progress.progress_percentage}% • {progress.status} • Updated:{" "}
-                            {new Date(progress.updated_at).toLocaleDateString()}
-                          </p>
-                        </div>
-                        <div className="flex gap-2">
-                          <Button size="sm" variant="outline" onClick={() => handleEditItem("mslearn", progress)}>
-                            Edit
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="destructive"
-                            onClick={() => handleDeleteItem("mslearn", progress.id)}
-                          >
-                            Delete
-                          </Button>
-                        </div>
-                      </div>
-                    ))}
-                    {allContent.msLearnProgress.length === 0 && (
-                      <p className="text-gray-500 text-center py-4">No MS Learn progress yet</p>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Resources Management */}
-              <Card>
-                <CardHeader>
-                  <CardTitle>Resources ({allContent.resources.length})</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-2">
-                    {allContent.resources.map((resource) => (
-                      <div key={resource.id} className="flex items-center justify-between p-3 border rounded">
-                        <div>
-                          <h4 className="font-medium">{resource.title}</h4>
-                          <p className="text-sm text-gray-500">
-                            {resource.category} • {resource.is_free ? "Free" : "Paid"} •{" "}
-                            {resource.description && `${resource.description.substring(0, 100)}... • `}
-                            Added: {new Date(resource.created_at).toLocaleDateString()}
-                          </p>
-                        </div>
-                        <div className="flex gap-2">
-                          <Button size="sm" variant="outline" onClick={() => handleEditItem("resource", resource)}>
-                            Edit
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="destructive"
-                            onClick={() => handleDeleteItem("resource", resource.id)}
-                          >
-                            Delete
-                          </Button>
-                        </div>
-                      </div>
-                    ))}
-                    {allContent.resources.length === 0 && (
-                      <p className="text-gray-500 text-center py-4">No resources yet</p>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          </TabsContent>
-        </Tabs>
-      </div>
-    </div>
-  )
-}
+                  <Label\
