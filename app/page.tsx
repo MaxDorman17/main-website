@@ -226,7 +226,9 @@ export default async function HomePage() {
                   </CardHeader>
                   <CardContent>
                     <p className="text-muted-foreground mb-4">{service.description}</p>
-                    <p className="text-2xl font-bold text-neon-pink">£{service.price}</p>
+                    <p className="text-2xl font-bold text-neon-pink">
+                      {service.price_from ? `From £${service.price_from}` : "Contact for pricing"}
+                    </p>
                   </CardContent>
                 </Card>
               ))
