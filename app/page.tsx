@@ -93,15 +93,112 @@ export default async function HomePage() {
                   <img
                     src={profilePic.image_url || "/placeholder.svg"}
                     alt="Max Dorman"
-                    className="w-80 h-80 rounded-2xl object-cover mx-auto shadow-2xl border-4 border-primary/20"
+                    className="w-80 h-80 rounded-full object-cover mx-auto shadow-2xl border-4 border-primary/20"
                   />
                 ) : (
-                  <div className="w-80 h-80 rounded-2xl bg-gradient-to-br from-primary/20 to-neon-pink/20 mx-auto shadow-2xl border-4 border-primary/20 flex items-center justify-center">
+                  <div className="w-80 h-80 rounded-full bg-gradient-to-br from-primary/20 to-neon-pink/20 mx-auto shadow-2xl border-4 border-primary/20 flex items-center justify-center">
                     <Users className="w-32 h-32 text-primary/50" />
                   </div>
                 )}
               </div>
               <div className="absolute inset-0 bg-gradient-to-r from-neon-pink/20 to-neon-cyan/20 rounded-2xl blur-3xl transform rotate-6"></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* About Me Section */}
+      <section className="py-20">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid lg:grid-cols-2 gap-12 items-center">
+            <div className="space-y-6">
+              <div className="space-y-4">
+                <h2 className="text-3xl lg:text-4xl font-bold text-foreground">About Me</h2>
+                <p className="text-lg text-muted-foreground leading-relaxed">
+                  I'm a passionate Microsoft Fundamentals student based in Fife, Scotland, with a deep love for
+                  technology and helping others succeed through innovative solutions.
+                </p>
+                <p className="text-lg text-muted-foreground leading-relaxed">
+                  My journey in technology is driven by curiosity and a commitment to continuous learning. I specialize
+                  in creating efficient, user-friendly solutions that make a real difference in people's lives and
+                  businesses.
+                </p>
+                <p className="text-lg text-muted-foreground leading-relaxed">
+                  When I'm not coding or designing, you'll find me exploring the latest tech trends, working on personal
+                  projects, or helping others navigate their technology challenges.
+                </p>
+              </div>
+
+              <div className="grid grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <h3 className="font-semibold text-foreground">Location</h3>
+                  <p className="text-muted-foreground">Fife, Scotland</p>
+                </div>
+                <div className="space-y-2">
+                  <h3 className="font-semibold text-foreground">Focus</h3>
+                  <p className="text-muted-foreground">Microsoft Fundamentals</p>
+                </div>
+                <div className="space-y-2">
+                  <h3 className="font-semibold text-foreground">Specialties</h3>
+                  <p className="text-muted-foreground">Excel, Design, Consulting</p>
+                </div>
+                <div className="space-y-2">
+                  <h3 className="font-semibold text-foreground">Experience</h3>
+                  <p className="text-muted-foreground">Technology Solutions</p>
+                </div>
+              </div>
+
+              <div className="flex flex-col sm:flex-row gap-4">
+                <Link href="/about">
+                  <Button variant="outline" size="lg" className="w-full sm:w-auto">
+                    Learn More About Me
+                    <ArrowRight className="w-5 h-5 ml-2" />
+                  </Button>
+                </Link>
+                <Link href="/certificates">
+                  <Button variant="ghost" size="lg" className="w-full sm:w-auto">
+                    View Certificates
+                    <Star className="w-5 h-5 ml-2" />
+                  </Button>
+                </Link>
+              </div>
+            </div>
+
+            <div className="relative">
+              <Card className="cyber-card p-8">
+                <div className="space-y-6">
+                  <div className="text-center">
+                    <h3 className="text-2xl font-bold text-foreground mb-4">My Mission</h3>
+                    <p className="text-muted-foreground leading-relaxed">
+                      "To bridge the gap between complex technology and practical solutions, making digital tools
+                      accessible and beneficial for everyone."
+                    </p>
+                  </div>
+
+                  <div className="section-divider"></div>
+
+                  <div className="grid grid-cols-3 gap-4 text-center">
+                    <div className="space-y-2">
+                      <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mx-auto">
+                        <Code className="w-6 h-6 text-primary" />
+                      </div>
+                      <h4 className="font-semibold text-sm">Innovation</h4>
+                    </div>
+                    <div className="space-y-2">
+                      <div className="w-12 h-12 bg-neon-pink/10 rounded-full flex items-center justify-center mx-auto">
+                        <Users className="w-6 h-6 text-neon-pink" />
+                      </div>
+                      <h4 className="font-semibold text-sm">Collaboration</h4>
+                    </div>
+                    <div className="space-y-2">
+                      <div className="w-12 h-12 bg-neon-cyan/10 rounded-full flex items-center justify-center mx-auto">
+                        <Star className="w-6 h-6 text-neon-cyan" />
+                      </div>
+                      <h4 className="font-semibold text-sm">Excellence</h4>
+                    </div>
+                  </div>
+                </div>
+              </Card>
             </div>
           </div>
         </div>
