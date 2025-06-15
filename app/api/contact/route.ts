@@ -6,7 +6,14 @@ const resend = new Resend(process.env.RESEND_API_KEY)
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json()
+    console.log("📝 Received contact form data:", body)
+
     const { name, email, phone, company, service, budget, timeline, message } = body
+
+    // Validate required fields
+    if (!name || !email || !message) {
+      return NextResponse.json({ error: "Name, email, and message are required" }, { status: 400 })
+    }
 
     const emailHtml = `
   <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border-radius: 10px; overflow: hidden;">
@@ -26,9 +33,9 @@ export async function POST(req: NextRequest) {
       
       <div style="margin-bottom: 25px; padding: 20px; background: rgba(0,0,0,0.2); border-radius: 8px; border-left: 4px solid #ff00ff;">
         <h3 style="margin: 0 0 10px 0; color: #ff00ff;">Project Details</h3>
-        <p style="margin: 5px 0;"><strong>Service:</strong> ${service}</p>
-        <p style="margin: 5px 0;"><strong>Budget:</strong> ${budget}</p>
-        <p style="margin: 5px 0;"><strong>Timeline:</strong> ${timeline}</p>
+        <p style="margin: 5px 0;"><strong>Service:</strong> ${service || "Not specified"}</p>
+        <p style="margin: 5px 0;"><strong>Budget:</strong> ${budget || "Not specified"}</p>
+        <p style="margin: 5px 0;"><strong>Timeline:</strong> ${timeline || "Not specified"}</p>
       </div>
       
       <div style="padding: 20px; background: rgba(0,0,0,0.2); border-radius: 8px; border-left: 4px solid #00ff88;">
@@ -46,26 +53,24 @@ export async function POST(req: NextRequest) {
   </div>
 `
 
+    console.log("📧 Attempting to send email to maxd@ittechs.io")
+
     const data = await resend.emails.send({
       from: "Contact Form <onboarding@resend.dev>",
       to: ["maxd@ittechs.io"],
-      subject: "Max Dorman Website Contact Form",
+      subject: `New Contact: ${name} - ${service || "General Inquiry"}`,
       html: emailHtml,
     })
 
-    console.log("✅ Email sent successfully to maxd@ittechs.io")
-    console.log("Email data:", data)
+    console.log("✅ Email sent successfully:", data)
 
-    return NextResponse.json(data)
-  } catch (error) {
-    return NextResponse.json({ error })
-  } finally {
-    // Log the contact form submission regardless of email status
-    const { name, email } = await req.json()
-    console.log("📝 Contact form submission received:", {
-      name,
-      email,
-      timestamp: new Date().toISOString(),
+    return NextResponse.json({
+      success: true,
+      message: "Message sent successfully!",
+      emailId: data.id,
     })
+  } catch (error) {
+    console.error("❌ Contact form error:", error)
+    return NextResponse.json({ error: `Failed to send message: ${error.message}` }, { status: 500 })
   }
 }

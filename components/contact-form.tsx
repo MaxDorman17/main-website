@@ -41,10 +41,22 @@ export function ContactForm() {
 
     setLoading(true)
     try {
+      // Map form data to match API expectations
+      const apiData = {
+        name: formData.name,
+        email: formData.email,
+        phone: formData.phone,
+        company: formData.company,
+        service: formData.service_interest, // Map service_interest to service
+        budget: formData.budget_range, // Map budget_range to budget
+        timeline: formData.timeline,
+        message: formData.message,
+      }
+
       const response = await fetch("/api/contact", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(apiData),
       })
 
       const result = await response.json()
@@ -52,7 +64,7 @@ export function ContactForm() {
       if (response.ok) {
         toast({
           title: "Success!",
-          description: result.message || "Thank you for your message! I'll get back to you within 24 hours.",
+          description: "Thank you for your message! I'll get back to you within 24 hours.",
         })
         // Reset form
         setFormData({
@@ -70,9 +82,10 @@ export function ContactForm() {
         throw new Error(result.error || "Failed to send message")
       }
     } catch (error) {
+      console.error("Contact form error:", error)
       toast({
         title: "Error",
-        description: error.message,
+        description: "Failed to send message. Please try again.",
         variant: "destructive",
       })
     } finally {
