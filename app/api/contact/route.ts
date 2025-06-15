@@ -53,8 +53,19 @@ export async function POST(req: NextRequest) {
       html: emailHtml,
     })
 
+    console.log("✅ Email sent successfully to maxd@ittechs.io")
+    console.log("Email data:", data)
+
     return NextResponse.json(data)
   } catch (error) {
     return NextResponse.json({ error })
+  } finally {
+    // Log the contact form submission regardless of email status
+    const { name, email } = await req.json()
+    console.log("📝 Contact form submission received:", {
+      name,
+      email,
+      timestamp: new Date().toISOString(),
+    })
   }
 }
