@@ -1,42 +1,90 @@
-import { NextResponse } from "next/server"
-import { sql } from "@vercel/postgres"
-import { z } from "zod"
-import { sendBookingNotificationToAdmin } from "@/lib/email"
+import { type NextRequest, NextResponse } from "next/server"
+import { neon } from "@neondatabase/serverless"
 
-const schema = z.object({
-  name: z.string().min(3),
-  email: z.string().email(),
-  phone: z.string().min(10),
-  date: z.string(),
-  time: z.string(),
-  guests: z.number().min(1),
-  message: z.string().optional(),
-})
+const sql = neon(process.env.DATABASE_URL!)
 
-export async function POST(request: Request) {
+export async function GET() {
+  try {
+    const bookings = await sql`
+      SELECT * FROM bookings 
+      ORDER BY created_at DESC
+    `
+    return NextResponse.json(bookings)
+  } catch (error) {
+    console.error("Error fetching bookings:", error)
+    return NextResponse.json({ error: "Failed to fetch bookings" }, { status: 500 })
+  }
+}
+
+export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const result = schema.safeParse(body)
+    console.log("Received booking data:", body)
 
-    if (!result.success) {
-      console.log(result.error)
-      return NextResponse.json({ message: "Invalid input data", error: result.error.issues }, { status: 400 })
+    // Handle different possible field names
+    const clientName = body.client_name || body.name || body.clientName
+    const clientEmail = body.client_email || body.email || body.clientEmail
+    const clientPhone = body.client_phone || body.phone || body.clientPhone
+    const bookingDate = body.booking_date || body.date || body.bookingDate
+    const bookingTime = body.booking_time || body.time || body.bookingTime
+    const serviceType = body.service_type || body.service || body.serviceType
+    const message = body.message || ""
+
+    // Validation
+    if (!clientName || !clientEmail || !bookingDate || !bookingTime || !serviceType) {
+      console.error("Missing required fields:", {
+        clientName: !!clientName,
+        clientEmail: !!clientEmail,
+        bookingDate: !!bookingDate,
+        bookingTime: !!bookingTime,
+        serviceType: !!serviceType,
+      })
+      return NextResponse.json(
+        {
+          error: "Missing required fields",
+          required: ["client_name", "client_email", "booking_date", "booking_time", "service_type"],
+          received: Object.keys(body),
+        },
+        { status: 400 },
+      )
     }
 
-    const { name, email, phone, date, time, guests, message } = result.data
-
-    const data = await sql`
-      INSERT INTO bookings (name, email, phone, date, time, guests, message)
-      VALUES (${name}, ${email}, ${phone}, ${date}, ${time}, ${guests}, ${message})
-      RETURNING *;
+    // Check if the time slot is already booked
+    const existingBooking = await sql`
+      SELECT id FROM bookings 
+      WHERE booking_date = ${bookingDate} 
+      AND booking_time = ${bookingTime} 
+      AND status IN ('pending', 'confirmed')
     `
 
-    // Send notification to admin
-    await sendBookingNotificationToAdmin(data.rows[0])
+    if (existingBooking.length > 0) {
+      return NextResponse.json({ error: "This time slot is already booked" }, { status: 400 })
+    }
 
-    return NextResponse.json({ message: "Booking created", booking: data.rows }, { status: 201 })
-  } catch (error: any) {
-    console.error(error)
-    return NextResponse.json({ message: "Error creating booking", error: error.message }, { status: 500 })
+    // Insert the booking
+    const result = await sql`
+      INSERT INTO bookings (client_name, client_email, client_phone, booking_date, booking_time, service_type, message, status)
+      VALUES (${clientName}, ${clientEmail}, ${clientPhone}, ${bookingDate}, ${bookingTime}, ${serviceType}, ${message}, 'pending')
+      RETURNING *
+    `
+
+    console.log("Booking created successfully:", result[0])
+    return NextResponse.json(
+      {
+        success: true,
+        booking: result[0],
+        message: "Booking created successfully",
+      },
+      { status: 201 },
+    )
+  } catch (error) {
+    console.error("Error creating booking:", error)
+    return NextResponse.json(
+      {
+        error: "Failed to create booking",
+        details: error.message,
+      },
+      { status: 500 },
+    )
   }
 }
