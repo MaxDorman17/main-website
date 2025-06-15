@@ -1,5 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { neon } from "@neondatabase/serverless"
+import { sendBookingStatusEmail } from "@/lib/email"
 
 const sql = neon(process.env.DATABASE_URL!)
 
@@ -22,6 +23,11 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
 
     if (result.length === 0) {
       return NextResponse.json({ error: "Booking not found" }, { status: 404 })
+    }
+
+    // Send email notification to client
+    if (status === "accepted" || status === "rejected") {
+      await sendBookingStatusEmail(result[0], status)
     }
 
     return NextResponse.json(result[0])

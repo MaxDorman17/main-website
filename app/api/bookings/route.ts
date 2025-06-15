@@ -1,51 +1,42 @@
-import { type NextRequest, NextResponse } from "next/server"
-import { neon } from "@neondatabase/serverless"
+import { NextResponse } from "next/server"
+import { sql } from "@vercel/postgres"
+import { z } from "zod"
+import { sendBookingNotificationToAdmin } from "@/lib/email"
 
-const sql = neon(process.env.DATABASE_URL!)
+const schema = z.object({
+  name: z.string().min(3),
+  email: z.string().email(),
+  phone: z.string().min(10),
+  date: z.string(),
+  time: z.string(),
+  guests: z.number().min(1),
+  message: z.string().optional(),
+})
 
-export async function GET() {
-  try {
-    const bookings = await sql`
-      SELECT * FROM bookings 
-      ORDER BY booking_date DESC, booking_time DESC
-    `
-    return NextResponse.json(bookings)
-  } catch (error) {
-    console.error("Error fetching bookings:", error)
-    return NextResponse.json({ error: "Failed to fetch bookings" }, { status: 500 })
-  }
-}
-
-export async function POST(request: NextRequest) {
+export async function POST(request: Request) {
   try {
     const body = await request.json()
-    const { client_name, client_email, client_phone, booking_date, booking_time, service_type, message } = body
+    const result = schema.safeParse(body)
 
-    if (!client_name || !client_email || !booking_date || !booking_time || !service_type) {
-      return NextResponse.json({ error: "Missing required fields" }, { status: 400 })
+    if (!result.success) {
+      console.log(result.error)
+      return NextResponse.json({ message: "Invalid input data", error: result.error.issues }, { status: 400 })
     }
 
-    // Check if the time slot is already booked
-    const existingBooking = await sql`
-      SELECT id FROM bookings 
-      WHERE booking_date = ${booking_date} 
-      AND booking_time = ${booking_time} 
-      AND status IN ('pending', 'confirmed')
+    const { name, email, phone, date, time, guests, message } = result.data
+
+    const data = await sql`
+      INSERT INTO bookings (name, email, phone, date, time, guests, message)
+      VALUES (${name}, ${email}, ${phone}, ${date}, ${time}, ${guests}, ${message})
+      RETURNING *;
     `
 
-    if (existingBooking.length > 0) {
-      return NextResponse.json({ error: "This time slot is already booked" }, { status: 400 })
-    }
+    // Send notification to admin
+    await sendBookingNotificationToAdmin(data.rows[0])
 
-    const result = await sql`
-      INSERT INTO bookings (client_name, client_email, client_phone, booking_date, booking_time, service_type, message)
-      VALUES (${client_name}, ${client_email}, ${client_phone}, ${booking_date}, ${booking_time}, ${service_type}, ${message})
-      RETURNING *
-    `
-
-    return NextResponse.json(result[0], { status: 201 })
-  } catch (error) {
-    console.error("Error creating booking:", error)
-    return NextResponse.json({ error: "Failed to create booking" }, { status: 500 })
+    return NextResponse.json({ message: "Booking created", booking: data.rows }, { status: 201 })
+  } catch (error: any) {
+    console.error(error)
+    return NextResponse.json({ message: "Error creating booking", error: error.message }, { status: 500 })
   }
 }
